@@ -1,26 +1,20 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class BiomarkerController extends Controller
+class SourceController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index(Request $request)
+    public function index()
     {
-        $query = Biomarker::query();
-
-        if ($request->filled('search')) {
-            $search = trim($request->string('search')->toString());
-            $query->where('name', 'like', "%{$search}%");
-        }
-
-        return BiomarkerResource::collection($query->paginate(20));
+        return SourceResource::collection(Source::query()->orderBy('name')->get());
     }
+
 
     /**
      * Store a newly created resource in storage.
@@ -33,9 +27,9 @@ class BiomarkerController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Biomarker $biomarker): BiomarkerResource
+    public function show(Source $source): SourceResource
     {
-        return new BiomarkerResource($biomarker);
+        return new SourceResource($source);
     }
 
     /**

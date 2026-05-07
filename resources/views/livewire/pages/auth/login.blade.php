@@ -9,6 +9,11 @@ new #[Layout('layouts.guest')] class extends Component
 {
     public LoginForm $form;
 
+    protected array $rules = [
+        'form.email' => ['required', 'email'],
+        'form.password' => ['required', 'string'],
+    ];
+
     /**
      * Handle an incoming authentication request.
      */
@@ -21,6 +26,7 @@ new #[Layout('layouts.guest')] class extends Component
         Session::regenerate();
 
         $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
+        
     }
 }; ?>
 

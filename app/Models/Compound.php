@@ -1,12 +1,30 @@
 <?php
 
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Mehradsadeghi\FilterQueryString\FilterQueryString;
 
 class Compound extends Model
 {
     use HasFactory;
+    use FilterQueryString;
+
+    protected $filters = [
+        'canonical_name',
+        'iupac_name',
+        'inchikey',
+        'hmdb_id',
+        'chebi_id',
+        'sort',
+        'like',
+        'in',
+    ];
 
     protected $fillable = [
         'canonical_name',
@@ -19,6 +37,7 @@ class Compound extends Model
         'cas',
         'hmdb_id',
         'chebi_id',
+        'description',
     ];
 
     public function projects(): BelongsToMany

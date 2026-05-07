@@ -1,20 +1,26 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class SourceController extends Controller
+class DiseaseController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return SourceResource::collection(Source::query()->orderBy('name')->get());
-    }
+        $query = Disease::query();
 
+        if ($request->filled('search')) {
+            $search = trim($request->string('search')->toString());
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        return DiseaseResource::collection($query->paginate(20));
+    }
 
     /**
      * Store a newly created resource in storage.
@@ -27,9 +33,9 @@ class SourceController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Source $source): SourceResource
+    public function show(Disease $disease): DiseaseResource
     {
-        return new SourceResource($source);
+        return new DiseaseResource($disease);
     }
 
     /**

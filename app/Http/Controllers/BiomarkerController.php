@@ -1,25 +1,25 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
-class DiseaseController extends Controller
+class BiomarkerController extends Controller
 {
     /**
      * Display a listing of the resource.
      */
     public function index(Request $request)
     {
-        $query = Disease::query();
+        $query = Biomarker::query();
 
         if ($request->filled('search')) {
             $search = trim($request->string('search')->toString());
             $query->where('name', 'like', "%{$search}%");
         }
 
-        return DiseaseResource::collection($query->paginate(20));
+        return BiomarkerResource::collection($query->paginate(20));
     }
 
     /**
@@ -33,9 +33,9 @@ class DiseaseController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Disease $disease): DiseaseResource
+    public function show(Biomarker $biomarker): BiomarkerResource
     {
-        return new DiseaseResource($disease);
+        return new BiomarkerResource($biomarker);
     }
 
     /**

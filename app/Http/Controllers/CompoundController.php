@@ -1,8 +1,12 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreCompoundRequest;
+use App\Http\Requests\UpdateCompoundRequest;
+use App\Http\Resources\CompoundResource;
+use App\Models\Compound;
 use Illuminate\Http\Request;
 
 class CompoundController extends Controller
@@ -12,31 +16,16 @@ class CompoundController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Compound::query()->with([
+        $compounds = Compound::query()->with([
             'synonyms.source',
             'retentionIndices.source',
             'taxonomy',
             'diseases',
             'ontologies',
             'biomarkers',
-        ]);
-
-        if ($request->filled('search')) {
-            $search = trim($request->string('search')->toString());
-
-            $query->where(function ($q) use ($search) {
-                $q->where('canonical_name', 'like', "%{$search}%")
-                    ->orWhere('iupac_name', 'like', "%{$search}%")
-                    ->orWhere('inchikey', 'like', "%{$search}%")
-                    ->orWhere('hmdb_id', 'like', "%{$search}%")
-                    ->orWhere('chebi_id', 'like', "%{$search}%")
-                    ->orWhereHas('synonyms', function ($sq) use ($search) {
-                        $sq->where('name', 'like', "%{$search}%");
-                    });
-            });
-        }
-
-        $compounds = $query->paginate(20);
+        ])
+        ->filter()
+        ->paginate(20);
 
         return CompoundResource::collection($compounds);
     }
