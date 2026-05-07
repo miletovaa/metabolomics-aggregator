@@ -7,6 +7,7 @@ use App\Models\Project;
 use App\Models\ProjectCompound;
 use App\Models\Taxonomy;
 use App\Services\CompoundMappingService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Livewire\Attributes\Validate;
@@ -543,6 +544,14 @@ class Show extends Component
         $this->errorMessage   = null;
     }
 
+    public function updateNotes(int $id, string $value): void
+    {
+        $value = trim($value);
+        $this->project->projectCompounds()->findOrFail($id)->update([
+            'notes' => $value === '' ? null : $value,
+        ]);
+    }
+
     public function dismissNotification(): void
     {
         $this->successMessage = null;
@@ -750,7 +759,7 @@ class Show extends Component
     public function render()
     {
         $query = $this->project->projectCompounds()
-            ->with(['compound', 'compound.taxonomy', 'compound.retentionIndices.source']);
+            ->with(['compound', 'compound.taxonomy', 'compound.retentionIndices.source', 'compound.projects']);
 
         if ($this->search !== '') {
             $search = strtolower(trim($this->search));
@@ -782,6 +791,9 @@ class Show extends Component
             $query->leftJoin('compounds', 'project_compounds.compound_id', '=', 'compounds.id')
                 ->orderBy("compounds.{$this->sortField}", $this->sortDirection)
                 ->select('project_compounds.*');
+        } elseif ($this->sortField === 'projects_count') {
+            $query->addSelect(DB::raw('(SELECT COUNT(DISTINCT project_id) FROM project_compounds AS pc2 WHERE pc2.compound_id = project_compounds.compound_id) AS projects_unique_count'))
+                ->orderBy('projects_unique_count', $this->sortDirection);
         } else {
             $query->orderBy($this->sortField, $this->sortDirection);
         }

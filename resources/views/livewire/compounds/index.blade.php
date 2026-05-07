@@ -22,9 +22,11 @@
             { key: 'taxonomy_class',        label: 'Class' },
             { key: 'taxonomy_subclass',     label: 'Subclass' },
             { key: 'taxonomy_direct_parent',label: 'Direct Parent' },
+            { key: 'projects',              label: 'Projects' },
+            { key: 'description',           label: 'Comment' },
         ],
         init() {
-            const defaults = { id: true, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: true, chebi_id: true, ri_polar: true, taxonomy_kingdom: true, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false };
+            const defaults = { id: true, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: true, chebi_id: true, ri_polar: true, taxonomy_kingdom: true, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false, projects: true, description: true };
             const saved = JSON.parse(localStorage.getItem('compound_cols') || 'null');
             this.cols = { ...defaults, ...(saved || {}) };
         },

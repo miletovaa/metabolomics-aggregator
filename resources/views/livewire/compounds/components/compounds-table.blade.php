@@ -25,6 +25,10 @@
                 <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_class">Class</th>
                 <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_subclass">Subclass</th>
                 <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_direct_parent">Direct Parent</th>
+                <th class="px-4 py-3 cursor-pointer whitespace-nowrap" x-show="cols.projects" wire:click="sortBy('projects_count')">
+                    Projects @if($sortField==='projects_count')<span>{{ $sortDirection==='asc'?'↑':'↓' }}</span>@else<span class="text-gray-400">↕</span>@endif
+                </th>
+                <th class="px-4 py-3 whitespace-nowrap" x-show="cols.description">Comment</th>
             </tr>
         </thead>
 
@@ -117,10 +121,81 @@
                     <td class="px-4 py-3 text-gray-700" x-show="cols.taxonomy_direct_parent">
                         {{ $compound->taxonomy?->direct_parent ?: '—' }}
                     </td>
+
+                    <td class="px-4 py-3" x-show="cols.projects" @click.stop>
+                        @php $uniqueProjects = $compound->projects->unique('id'); @endphp
+                        @if($uniqueProjects->isEmpty())
+                            <span class="text-gray-400">—</span>
+                        @else
+                            <div class="flex flex-wrap gap-1">
+                                @foreach($uniqueProjects->take(3) as $project)
+                                    <span class="inline-block rounded-full bg-blue-100 text-blue-700 text-xs px-2 py-0.5 whitespace-nowrap">{{ $project->name }}</span>
+                                @endforeach
+                                @if($uniqueProjects->count() > 3)
+                                    <span class="inline-block rounded-full bg-gray-100 text-gray-500 text-xs px-2 py-0.5">+{{ $uniqueProjects->count() - 3 }}</span>
+                                @endif
+                            </div>
+                        @endif
+                    </td>
+
+                    <td class="px-4 py-3 max-w-xs" x-show="cols.description" @click.stop>
+                        <div
+                            x-data="{
+                                editing: false,
+                                value: @js($compound->description ?? ''),
+                                original: @js($compound->description ?? ''),
+                                cancelled: false,
+                                startEdit() {
+                                    this.editing = true;
+                                    this.$nextTick(() => this.$refs.descInput.focus());
+                                },
+                                cancel() {
+                                    this.cancelled = true;
+                                    this.value = this.original;
+                                    this.editing = false;
+                                },
+                                save() {
+                                    if (!this.cancelled && this.value !== this.original) {
+                                        $wire.updateDescription({{ $compound->id }}, this.value);
+                                        this.original = this.value;
+                                    }
+                                    this.cancelled = false;
+                                    this.editing = false;
+                                }
+                            }"
+                            class="flex items-start gap-1.5 min-w-0 group/desc"
+                        >
+                            <span
+                                x-show="!editing"
+                                @dblclick="startEdit()"
+                                class="cursor-default truncate text-gray-600"
+                                title="Double-click to edit"
+                                x-text="value || '—'"
+                            ></span>
+                            <textarea
+                                x-show="editing"
+                                x-ref="descInput"
+                                x-model="value"
+                                rows="2"
+                                @click.stop
+                                @keydown.escape.prevent="cancel()"
+                                @blur="save()"
+                                class="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-black resize-none"
+                            ></textarea>
+                            <button
+                                x-show="!editing"
+                                @click.stop="startEdit()"
+                                class="shrink-0 mt-0.5 opacity-0 group-hover/desc:opacity-40 hover:!opacity-100 transition-opacity"
+                                title="Edit comment"
+                            >
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+                            </button>
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr>
-                    <td colspan="17" class="px-4 py-8 text-center text-gray-500">No compounds found.</td>
+                    <td colspan="19" class="px-4 py-8 text-center text-gray-500">No compounds found.</td>
                 </tr>
             @endforelse
         </tbody>

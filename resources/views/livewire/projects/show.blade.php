@@ -29,9 +29,11 @@
             { key: 'taxonomy_class',        label: 'Class' },
             { key: 'taxonomy_subclass',     label: 'Subclass' },
             { key: 'taxonomy_direct_parent',label: 'Direct Parent' },
+            { key: 'projects',              label: 'Projects' },
+            { key: 'notes',                 label: 'Comment' },
         ],
         init() {
-            const defaults = { input_name: true, custom_name: true, ri: true, ri_lit: true, mz: true, is_mapped: true, is_duplicate: false, is_terpene: false, terpene_type: false, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: false, chebi_id: false, taxonomy_kingdom: false, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false };
+            const defaults = { input_name: true, custom_name: true, ri: true, ri_lit: true, mz: true, is_mapped: true, is_duplicate: false, is_terpene: false, terpene_type: false, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: false, chebi_id: false, taxonomy_kingdom: false, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false, projects: true, notes: true };
             const saved = JSON.parse(localStorage.getItem('pc_cols') || 'null');
             this.cols = { ...defaults, ...(saved || {}) };
         },
@@ -292,6 +294,10 @@
                     <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_class">Class</th>
                     <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_subclass">Subclass</th>
                     <th class="px-4 py-3 whitespace-nowrap" x-show="cols.taxonomy_direct_parent">Direct Parent</th>
+                    <th class="px-4 py-3 cursor-pointer whitespace-nowrap" x-show="cols.projects" wire:click="sortBy('projects_count')">
+                        Projects @if($sortField==='projects_count')<span>{{ $sortDirection==='asc'?'↑':'↓' }}</span>@else<span class="text-gray-400">↕</span>@endif
+                    </th>
+                    <th class="px-4 py-3 whitespace-nowrap" x-show="cols.notes">Comment</th>
                 </tr>
             </thead>
 
@@ -596,10 +602,81 @@
                         <td class="px-4 py-3" x-show="cols.taxonomy_class">{{ $c->compound->taxonomy?->{'class'} ?? '—' }}</td>
                         <td class="px-4 py-3" x-show="cols.taxonomy_subclass">{{ $c->compound->taxonomy?->subclass ?? '—' }}</td>
                         <td class="px-4 py-3" x-show="cols.taxonomy_direct_parent">{{ $c->compound->taxonomy?->direct_parent ?? '—' }}</td>
+
+                        <td class="px-4 py-3" x-show="cols.projects">
+                            @php $uniqueProjects = $c->compound?->projects->unique('id') ?? collect(); @endphp
+                            @if($uniqueProjects->isNotEmpty())
+                                <div class="flex flex-wrap gap-1">
+                                    @foreach($uniqueProjects->take(3) as $proj)
+                                        <span class="inline-block rounded-full bg-blue-100 text-blue-700 text-xs px-2 py-0.5 whitespace-nowrap">{{ $proj->name }}</span>
+                                    @endforeach
+                                    @if($uniqueProjects->count() > 3)
+                                        <span class="inline-block rounded-full bg-gray-100 text-gray-500 text-xs px-2 py-0.5">+{{ $uniqueProjects->count() - 3 }}</span>
+                                    @endif
+                                </div>
+                            @else
+                                <span class="text-gray-400">—</span>
+                            @endif
+                        </td>
+
+                        <td class="px-4 py-3 max-w-xs" x-show="cols.notes">
+                            <div
+                                x-data="{
+                                    editing: false,
+                                    value: @js($c->notes ?? ''),
+                                    original: @js($c->notes ?? ''),
+                                    cancelled: false,
+                                    startEdit() {
+                                        this.editing = true;
+                                        this.$nextTick(() => this.$refs.notesInput{{ $c->id }}.focus());
+                                    },
+                                    cancel() {
+                                        this.cancelled = true;
+                                        this.value = this.original;
+                                        this.editing = false;
+                                    },
+                                    save() {
+                                        if (!this.cancelled && this.value !== this.original) {
+                                            $wire.updateNotes({{ $c->id }}, this.value);
+                                            this.original = this.value;
+                                        }
+                                        this.cancelled = false;
+                                        this.editing = false;
+                                    }
+                                }"
+                                class="flex items-start gap-1.5 min-w-0 group/notes"
+                            >
+                                <span
+                                    x-show="!editing"
+                                    @dblclick="startEdit()"
+                                    class="cursor-default truncate text-gray-600"
+                                    title="Double-click to edit"
+                                    x-text="value || '—'"
+                                ></span>
+                                <textarea
+                                    x-show="editing"
+                                    x-ref="notesInput{{ $c->id }}"
+                                    x-model="value"
+                                    rows="2"
+                                    @click.stop
+                                    @keydown.escape.prevent="cancel()"
+                                    @blur="save()"
+                                    class="border border-gray-300 rounded px-2 py-1 text-sm w-full focus:outline-none focus:ring-2 focus:ring-black resize-none"
+                                ></textarea>
+                                <button
+                                    x-show="!editing"
+                                    @click.stop="startEdit()"
+                                    class="shrink-0 mt-0.5 opacity-0 group-hover/notes:opacity-40 hover:!opacity-100 transition-opacity"
+                                    title="Edit comment"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="25" class="px-4 py-8 text-center text-gray-400">No compounds found.</td>
+                        <td colspan="27" class="px-4 py-8 text-center text-gray-400">No compounds found.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -6,6 +6,7 @@ use App\Jobs\SyncCompoundsJob;
 use App\Models\Compound;
 use App\Models\Taxonomy;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 
 class Index extends Component
@@ -199,10 +200,18 @@ class Index extends Component
         $this->selectedCompoundId = null;
     }
 
+    public function updateDescription(int $id, string $value): void
+    {
+        $value = trim($value);
+        Compound::findOrFail($id)->update([
+            'description' => $value === '' ? null : $value,
+        ]);
+    }
+
     public function render()
     {
         $query = Compound::query()
-            ->with(['taxonomy', 'retentionIndices.source'])
+            ->with(['taxonomy', 'retentionIndices.source', 'projects'])
             ->when($this->search !== '', function ($query) {
                 $search = trim($this->search);
 
@@ -232,7 +241,13 @@ class Index extends Component
             ->when($this->filterClass !== '', fn($q) => $q->whereHas('taxonomy', fn($tq) =>
                 $tq->where('class', $this->filterClass)
             ))
-            ->orderBy($this->sortField, $this->sortDirection);
+            ->when(
+                $this->sortField === 'projects_count',
+                fn($q) => $q
+                    ->addSelect(DB::raw('(SELECT COUNT(DISTINCT project_id) FROM project_compounds WHERE project_compounds.compound_id = compounds.id) AS projects_unique_count'))
+                    ->orderBy('projects_unique_count', $this->sortDirection),
+                fn($q) => $q->orderBy($this->sortField, $this->sortDirection),
+            );
 
         $compounds = $query->paginate($this->perPage, ['*'], 'compoundsPage', $this->page);
         $this->lastPage = max(1, $compounds->lastPage());
