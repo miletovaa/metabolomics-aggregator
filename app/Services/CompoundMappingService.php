@@ -61,7 +61,7 @@ class CompoundMappingService
      */
     public function mapProjectCompound(ProjectCompound $row): bool
     {
-        $name = trim($row->custom_name ?? '');
+        $name = trim($row->input_name ?? $row->custom_name ?? '');
         if ($name === '') {
             return false;
         }

@@ -31,9 +31,10 @@
             { key: 'taxonomy_direct_parent',label: 'Direct Parent' },
             { key: 'projects',              label: 'Projects' },
             { key: 'notes',                 label: 'Comment' },
+            { key: 'custom_taxonomy',       label: 'Custom Taxonomy' },
         ],
         init() {
-            const defaults = { input_name: true, custom_name: true, ri: true, ri_lit: true, mz: true, is_mapped: true, is_duplicate: false, is_terpene: false, terpene_type: false, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: false, chebi_id: false, taxonomy_kingdom: false, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false, projects: true, notes: true };
+            const defaults = { input_name: true, custom_name: true, ri: true, ri_lit: true, mz: true, is_mapped: true, is_duplicate: false, is_terpene: false, terpene_type: false, canonical_name: true, iupac_name: true, molecular_formula: true, smiles: false, inchi: false, inchikey: true, pubchem_cid: false, cas: true, hmdb_id: false, chebi_id: false, taxonomy_kingdom: false, taxonomy_superclass: false, taxonomy_class: false, taxonomy_subclass: false, taxonomy_direct_parent: false, projects: true, notes: true, custom_taxonomy: false };
             const saved = JSON.parse(localStorage.getItem('pc_cols') || 'null');
             this.cols = { ...defaults, ...(saved || {}) };
         },
@@ -44,11 +45,28 @@
     @click.outside="colsOpen = false"
 >
 
+    {{-- ── Polling when a mapping job is running ── --}}
+    @if($pendingMappingJobId)
+        <div wire:poll.5s="checkMappingStatus" class="hidden"></div>
+    @endif
+
+    {{-- ── Mapping-in-progress banner ── --}}
+    @if($pendingMappingJobId)
+        <div class="mb-4 flex items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-800">
+            <svg class="w-4 h-4 animate-spin shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+            </svg>
+            Batch mapping is running in the background. This page will update automatically when it finishes.
+        </div>
+    @endif
+
     {{-- ── Notification banner ── --}}
     @if($successMessage || $errorMessage)
         <div
+            wire:key="notification-{{ $notificationRevision }}"
             x-data="{ visible: true }"
-            x-init="setTimeout(() => { visible = false; $wire.dismissNotification() }, 5000)"
+            x-init="setTimeout(() => visible = false, 5000)"
             x-show="visible"
             x-transition:leave="transition ease-in duration-300"
             x-transition:leave-start="opacity-100 translate-y-0"
@@ -85,13 +103,21 @@
                     wire:click="mapLocal"
                     wire:loading.attr="disabled"
                     wire:target="mapLocal"
+                    @disabled($pendingMappingJobId !== null)
                     class="relative bg-blue-500 text-white px-3 py-1 rounded disabled:opacity-60"
                 >
-                    <span wire:loading.remove wire:target="mapLocal">Map all compounds</span>
-                    <span wire:loading wire:target="mapLocal" class="flex items-center gap-1">
-                        <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
-                        Mapping…
-                    </span>
+                    @if($pendingMappingJobId)
+                        <span class="flex items-center gap-1">
+                            <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                            Running…
+                        </span>
+                    @else
+                        <span wire:loading.remove wire:target="mapLocal">Map all compounds</span>
+                        <span wire:loading wire:target="mapLocal" class="flex items-center gap-1">
+                            <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+                            Starting…
+                        </span>
+                    @endif
                 </button>
                 
                 <button
@@ -211,6 +237,10 @@
                 Is Mapped
             </label>
             <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
+                <input type="checkbox" wire:model.live="filterIsUnmapped" class="rounded border-gray-300 text-blue-500 focus:ring-blue-400">
+                Unmapped
+            </label>
+            <label class="flex items-center gap-1.5 text-sm cursor-pointer select-none">
                 <input type="checkbox" wire:model.live="filterHasPubchem" class="rounded border-gray-300 text-blue-500 focus:ring-blue-400">
                 Has PubChem CID
             </label>
@@ -298,13 +328,14 @@
                         Projects @if($sortField==='projects_count')<span>{{ $sortDirection==='asc'?'↑':'↓' }}</span>@else<span class="text-gray-400">↕</span>@endif
                     </th>
                     <th class="px-4 py-3 whitespace-nowrap" x-show="cols.notes">Comment</th>
+                    <th class="px-4 py-3 whitespace-nowrap" x-show="cols.custom_taxonomy">Custom Taxonomy</th>
                 </tr>
             </thead>
 
             <tbody>
                 @forelse($compounds as $c)
                     <tr
-                        wire:key="pc-{{ $c->id }}"
+                        wire:key="row-{{ $c->id }}"
                         wire:click="openProjectCompoundModal({{ $c->id }})"
                         class="border-t group cursor-pointer {{ $c->is_duplicate ? 'bg-amber-50 hover:bg-amber-100' : 'hover:bg-gray-50' }}"
                     >
@@ -336,7 +367,11 @@
                         </td>
 
                         {{-- Custom Name (double-click to edit) --}}
-                        <td class="px-4 py-3" x-show="cols.custom_name">
+                        <td 
+                            wire:key="custom-name-field-{{ $c->id }}"
+                            class="px-4 py-3" 
+                            x-show="cols.custom_name"
+                        >
                             <div
                                 x-data="{
                                     editing: false,
@@ -396,7 +431,11 @@
                         </td>
 
                         {{-- RI (double-click to edit) --}}
-                        <td class="px-4 py-3" x-show="cols.ri">
+                        <td 
+                            wire:key="ri-field-{{ $c->id }}"
+                            class="px-4 py-3" 
+                            x-show="cols.ri"
+                        >
                             <div
                                 x-data="{
                                     editing: false,
@@ -477,7 +516,11 @@
                         </td>
 
                         {{-- MZ (double-click to edit) --}}
-                        <td class="px-4 py-3" x-show="cols.mz">
+                        <td 
+                            wire:key="mz-field-{{ $c->id }}"
+                            class="px-4 py-3" 
+                            x-show="cols.mz"
+                        >
                             <div
                                 x-data="{
                                     editing: false,
@@ -670,10 +713,66 @@
                                 </button>
                             </div>
                         </td>
+
+                        <td class="px-4 py-3 max-w-xs" x-show="cols.custom_taxonomy">
+                            <div
+                                x-data="{
+                                    editing: false,
+                                    value: @js($c->custom_taxonomy ?? ''),
+                                    original: @js($c->custom_taxonomy ?? ''),
+                                    cancelled: false,
+                                    startEdit() {
+                                        this.editing = true;
+                                        this.$nextTick(() => this.$refs.taxInput{{ $c->id }}.focus());
+                                    },
+                                    cancel() {
+                                        this.cancelled = true;
+                                        this.value = this.original;
+                                        this.editing = false;
+                                    },
+                                    save() {
+                                        if (!this.cancelled && this.value !== this.original) {
+                                            $wire.updateCustomTaxonomy({{ $c->id }}, this.value);
+                                            this.original = this.value;
+                                        }
+                                        this.cancelled = false;
+                                        this.editing = false;
+                                    }
+                                }"
+                                class="flex items-start gap-1.5 min-w-0 group/tax"
+                            >
+                                <span
+                                    x-show="!editing"
+                                    @dblclick.stop="startEdit()"
+                                    class="cursor-default truncate text-gray-600"
+                                    title="Double-click to edit"
+                                    x-text="value || '—'"
+                                ></span>
+                                <input
+                                    x-show="editing"
+                                    x-ref="taxInput{{ $c->id }}"
+                                    x-model="value"
+                                    type="text"
+                                    @click.stop
+                                    @keydown.enter.prevent="save()"
+                                    @keydown.escape.prevent="cancel()"
+                                    @blur="save()"
+                                    class="border border-gray-300 rounded px-2 py-0.5 text-sm w-full focus:outline-none focus:ring-2 focus:ring-black"
+                                />
+                                <button
+                                    x-show="!editing"
+                                    @click.stop="startEdit()"
+                                    class="shrink-0 mt-0.5 opacity-0 group-hover/tax:opacity-40 hover:!opacity-100 transition-opacity"
+                                    title="Edit custom taxonomy"
+                                >
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536M9 13l6.586-6.586a2 2 0 112.828 2.828L11.828 15.828a2 2 0 01-1.414.586H8v-2.414a2 2 0 01.586-1.414z"/></svg>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="27" class="px-4 py-8 text-center text-gray-400">No compounds found.</td>
+                        <td colspan="28" class="px-4 py-8 text-center text-gray-400">No compounds found.</td>
                     </tr>
                 @endforelse
             </tbody>
@@ -914,7 +1013,7 @@
                 </button>
                 @error('file') <p class="text-sm text-red-600">{{ $message }}</p> @enderror
                 <p class="text-xs text-gray-500">
-                    With headers, use columns like <code>name</code>, <code>compound</code>, <code>ri</code>/<code>rt</code>, and <code>mz</code>/<code>m/z</code>.
+                    With headers, use columns like <code>name</code>, <code>compound</code>, <code>ri</code>, and <code>mz</code>/<code>m/z</code>.
                     Without headers the first three columns are read as name, RI, and m/z.
                 </p>
             </div>
@@ -944,7 +1043,6 @@
                         <span>Name <span class="text-red-400">*</span></span>
                         <span>RI (optional)</span>
                         <span>m/z (optional)</span>
-                        <span></span>
                     </div>
 
                     <div wire:ignore>

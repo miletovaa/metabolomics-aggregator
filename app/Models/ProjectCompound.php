@@ -22,6 +22,7 @@ class ProjectCompound extends Model
         'rt',
         'is_mapped',
         'notes',
+        'custom_taxonomy',
     ];
 
     protected $casts = [

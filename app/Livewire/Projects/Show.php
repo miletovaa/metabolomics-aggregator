@@ -2,11 +2,14 @@
 
 namespace App\Livewire\Projects;
 
+use App\Jobs\BatchMapProjectCompounds;
 use App\Models\Compound;
 use App\Models\Project;
 use App\Models\ProjectCompound;
+use App\Models\ProjectMappingJob;
 use App\Models\Taxonomy;
 use App\Services\CompoundMappingService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -87,26 +90,53 @@ class Show extends Component
     public int $lastPage = 1;
 
     // Filters
-    public bool $filterIsMapped   = false;
-    public bool $filterHasPubchem = false;
-    public bool $filterHasHmdb    = false;
-    public bool $filterHasCas     = false;
-    public bool $filterHasSmiles  = false;
-    public bool $filterIsTerpene  = false;
-    public string $filterKingdom  = '';
-    public string $filterClass    = '';
+    public bool $filterIsMapped    = false;
+    public bool $filterIsUnmapped  = false;
+    public bool $filterHasPubchem  = false;
+    public bool $filterHasHmdb     = false;
+    public bool $filterHasCas      = false;
+    public bool $filterHasSmiles   = false;
+    public bool $filterIsTerpene   = false;
+    public string $filterKingdom   = '';
+    public string $filterClass     = '';
 
     // Notification state
-    public ?string $successMessage = null;
-    public ?string $errorMessage = null;
+    public ?string $successMessage    = null;
+    public ?string $errorMessage      = null;
+    public int     $notificationRevision = 0;
 
     // Mapping log modal
-    public bool  $showMappingLogModal = false;
-    public array $mappingLog          = [];
+    public bool  $showMappingLogModal  = false;
+    public array $mappingLog           = [];
+    public ?int  $pendingMappingJobId  = null;
 
     public function mount(Project $project): void
     {
         $this->project = $project;
+        $this->loadPendingMappingResult();
+    }
+
+    private function loadPendingMappingResult(): void
+    {
+        $done = ProjectMappingJob::where('project_id', $this->project->id)
+            ->whereNull('read_at')
+            ->where('status', 'done')
+            ->latest('completed_at')
+            ->first();
+
+        if ($done) {
+            $this->mappingLog         = $done->log ?? [];
+            $this->showMappingLogModal = true;
+        }
+
+        $running = ProjectMappingJob::where('project_id', $this->project->id)
+            ->whereIn('status', ['pending', 'running'])
+            ->latest()
+            ->first();
+
+        if ($running) {
+            $this->pendingMappingJobId = $running->id;
+        }
     }
 
     public function updatedSearch(): void
@@ -133,6 +163,7 @@ class Show extends Component
     public function clearFilters(): void
     {
         $this->filterIsMapped   = false;
+        $this->filterIsUnmapped = false;
         $this->filterHasPubchem = false;
         $this->filterHasHmdb    = false;
         $this->filterHasCas     = false;
@@ -151,28 +182,27 @@ class Show extends Component
 
     private function computeTerpeneType(Compound $compound): ?string
     {
-        $formula = $compound->molecular_formula ?? '';
-        if (!$formula || !preg_match('/C(\d+)/', $formula, $m)) {
-            return null;
-        }
-        $carbons   = (int) $m[1];
-        $isAlcohol = str_contains($formula, 'O');
+        $tax = $compound->taxonomy;
+        $fields = $tax->raw_json ?? '';
 
-        if ($isAlcohol) {
-            return match($carbons) {
-                10 => 'Monoterpenol',
-                15 => 'Sesquiterpenol',
-                20 => 'Diterpenol',
-                default => 'Other',
-            };
+        if (preg_match('/\bMonoterpen\b/i', $fields)) {
+            return 'Monoterpene';
+        }
+        if (preg_match('/\bSesquiterpen\b/i', $fields)) {
+            return 'Sesquiterpene';
+        }
+        if (preg_match('/\bDiterpen\b/i', $fields)) {
+            return 'Diterpene';
         }
 
-        return match($carbons) {
-            10 => 'Monoterpene',
-            15 => 'Sesquiterpene',
-            20 => 'Diterpene',
-            default => 'Other',
-        };
+        return null;
+    }
+
+    private function notify(string $type, string $message): void
+    {
+        $this->successMessage      = $type === 'success' ? $message : null;
+        $this->errorMessage        = $type === 'error'   ? $message : null;
+        $this->notificationRevision++;
     }
 
     private function normalizeOptionalNumber(mixed $value): ?float
@@ -217,80 +247,66 @@ class Show extends Component
         $this->successMessage = null;
         $this->errorMessage   = null;
 
-        $rows = $this->project->projectCompounds()
-            ->whereNull('compound_id')
-            ->get();
+        $unmapped = $this->project->projectCompounds()->whereNull('compound_id')->count();
 
-        $total = $rows->count();
-
-        if ($total === 0) {
-            $this->errorMessage = 'No unmapped compounds to process.';
+        if ($unmapped === 0) {
+            $this->notify('error', 'No unmapped compounds to process.');
             return;
         }
 
-        // Watermark: any compound with id > this was created during this run (PubChem-sourced).
-        $watermark = (int) (Compound::max('id') ?? 0);
+        // Cancel any previously running job for this project so we don't double-up.
+        ProjectMappingJob::where('project_id', $this->project->id)
+            ->whereIn('status', ['pending', 'running'])
+            ->update(['status' => 'failed', 'completed_at' => now()]);
 
-        $localFound  = 0;
-        $pubchemNew  = 0;
-        $notFound    = 0;
-        $service     = app(CompoundMappingService::class);
+        $record = ProjectMappingJob::create([
+            'project_id' => $this->project->id,
+            'user_id'    => Auth::id(),
+            'status'     => 'pending',
+        ]);
 
-        foreach ($rows as $row) {
-            if (!trim($row->custom_name ?? '')) {
-                $notFound++;
-                continue;
-            }
+        BatchMapProjectCompounds::dispatch($record->id);
 
-            try {
-                $mapped = $service->mapProjectCompound($row);
+        $this->pendingMappingJobId = $record->id;
+        $this->notify('success', "Mapping started for {$unmapped} compound(s). You will be notified when it finishes.");
+    }
 
-                if ($mapped) {
-                    $row->refresh();
-                    if ($row->compound_id) {
-                        $compound  = $row->compound()->with('taxonomy')->first();
-                        $isTerpene = $this->computeIsTerpene($compound);
-                        $row->update([
-                            'is_terpene'   => $isTerpene,
-                            'terpene_type' => $isTerpene ? $this->computeTerpeneType($compound) : null,
-                        ]);
-
-                        if ($row->compound_id > $watermark) {
-                            $pubchemNew++;
-                        } else {
-                            $localFound++;
-                        }
-                    } else {
-                        $notFound++;
-                    }
-                } else {
-                    $notFound++;
-                }
-            } catch (\Throwable $e) {
-                Log::error('mapLocal batch failed', [
-                    'project_compound_id' => $row->id,
-                    'error'               => $e->getMessage(),
-                ]);
-                $notFound++;
-            }
+    public function checkMappingStatus(): void
+    {
+        if (!$this->pendingMappingJobId) {
+            return;
         }
 
-        $this->detectDuplicates();
-        $this->project->refresh();
+        $record = ProjectMappingJob::find($this->pendingMappingJobId);
 
-        $this->mappingLog = [
-            'ran_at'      => now()->format('Y-m-d H:i:s'),
-            'total'       => $total,
-            'local_found' => $localFound,
-            'pubchem_new' => $pubchemNew,
-            'not_found'   => $notFound,
-        ];
-        $this->showMappingLogModal = true;
+        if (!$record) {
+            $this->pendingMappingJobId = null;
+            return;
+        }
+
+        if ($record->status === 'done') {
+            $this->pendingMappingJobId  = null;
+            $this->mappingLog           = $record->log ?? [];
+            $this->showMappingLogModal  = true;
+            $this->project->refresh();
+        } elseif ($record->status === 'failed') {
+            $this->pendingMappingJobId = null;
+            $this->notify('error', 'Batch mapping failed. Check the logs for details.');
+        }
     }
 
     public function closeMappingLogModal(): void
     {
         $this->showMappingLogModal = false;
+
+        if ($this->mappingLog) {
+            ProjectMappingJob::where('project_id', $this->project->id)
+                ->where('status', 'done')
+                ->whereNull('read_at')
+                ->update(['read_at' => now()]);
+        }
+
+        $this->mappingLog = [];
     }
 
     public function mapSingle(int $id): void
@@ -299,7 +315,7 @@ class Show extends Component
         $this->errorMessage   = null;
 
         $row  = $this->project->projectCompounds()->findOrFail($id);
-        $name = $row->custom_name;
+        $name = $row->input_name;
 
         try {
             $mapped = app(CompoundMappingService::class)->mapProjectCompound($row);
@@ -316,16 +332,16 @@ class Show extends Component
                 }
                 $this->detectDuplicates();
                 $this->project->refresh();
-                $this->successMessage = "'{$name}' mapped successfully.";
+                $this->notify('success', "'{$name}' mapped successfully.");
             } else {
-                $this->errorMessage = "Could not map '{$name}' — not found in any source.";
+                $this->notify('error', "Could not map '{$name}' — not found in any source.");
             }
         } catch (\Throwable $e) {
             Log::error('mapSingle failed', [
                 'project_compound_id' => $id,
                 'error' => $e->getMessage(),
             ]);
-            $this->errorMessage = "Mapping failed: " . $e->getMessage();
+            $this->notify('error', "Mapping failed: " . $e->getMessage());
         }
     }
 
@@ -474,7 +490,7 @@ class Show extends Component
         $this->resetErrorBag();
         $this->page = 1;
         $this->project->refresh();
-        $this->successMessage = "Successfully imported {$created} compound(s).";
+        $this->notify('success', "Successfully imported {$created} compound(s).");
     }
 
     public function addManualRow(): void
@@ -533,7 +549,7 @@ class Show extends Component
         $this->resetErrorBag();
         $this->page = 1;
         $this->project->refresh();
-        $this->successMessage = "Successfully saved {$created} compound(s).";
+        $this->notify('success', "Successfully saved {$created} compound(s).");
     }
 
     public function updateCustomName(int $id, string $name): void
@@ -541,15 +557,12 @@ class Show extends Component
         $name = trim($name);
 
         if ($name === '') {
-            $this->errorMessage   = 'Custom name cannot be empty.';
-            $this->successMessage = null;
+            $this->notify('error', 'Custom name cannot be empty.');
             return;
         }
 
         $this->project->projectCompounds()->findOrFail($id)->update(['custom_name' => $name]);
-
-        $this->successMessage = 'Custom name updated.';
-        $this->errorMessage   = null;
+        $this->notify('success', 'Custom name updated.');
     }
 
     public function updateRt(int $id, string $value): void
@@ -557,9 +570,7 @@ class Show extends Component
         $this->project->projectCompounds()->findOrFail($id)->update([
             'rt' => $this->normalizeOptionalNumber($value),
         ]);
-
-        $this->successMessage = 'RI updated.';
-        $this->errorMessage   = null;
+        $this->notify('success', 'RI updated.');
     }
 
     public function updateMz(int $id, string $value): void
@@ -567,9 +578,7 @@ class Show extends Component
         $this->project->projectCompounds()->findOrFail($id)->update([
             'mz' => $this->normalizeOptionalNumber($value),
         ]);
-
-        $this->successMessage = 'm/z updated.';
-        $this->errorMessage   = null;
+        $this->notify('success', 'm/z updated.');
     }
 
     public function updateNotes(int $id, string $value): void
@@ -577,6 +586,14 @@ class Show extends Component
         $value = trim($value);
         $this->project->projectCompounds()->findOrFail($id)->update([
             'notes' => $value === '' ? null : $value,
+        ]);
+    }
+
+    public function updateCustomTaxonomy(int $id, string $value): void
+    {
+        $value = trim($value);
+        $this->project->projectCompounds()->findOrFail($id)->update([
+            'custom_taxonomy' => $value === '' ? null : $value,
         ]);
     }
 
@@ -802,7 +819,8 @@ class Show extends Component
         }
 
         $query
-            ->when($this->filterIsMapped,   fn($q) => $q->where('is_mapped', true))
+            ->when($this->filterIsMapped,    fn($q) => $q->where('is_mapped', true))
+            ->when($this->filterIsUnmapped,  fn($q) => $q->where('is_mapped', false))
             ->when($this->filterHasPubchem, fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('pubchem_cid')))
             ->when($this->filterHasHmdb,    fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('hmdb_id')))
             ->when($this->filterHasCas,     fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('cas')))
@@ -853,6 +871,7 @@ class Show extends Component
             ->pluck('class');
 
         $activeFilterCount = (int) $this->filterIsMapped
+            + (int) $this->filterIsUnmapped
             + (int) $this->filterHasPubchem
             + (int) $this->filterHasHmdb
             + (int) $this->filterHasCas
