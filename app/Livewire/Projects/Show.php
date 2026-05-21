@@ -100,6 +100,10 @@ class Show extends Component
     public ?string $successMessage = null;
     public ?string $errorMessage = null;
 
+    // Mapping log modal
+    public bool  $showMappingLogModal = false;
+    public array $mappingLog          = [];
+
     public function mount(Project $project): void
     {
         $this->project = $project;
@@ -211,58 +215,82 @@ class Show extends Component
     public function mapLocal(): void
     {
         $this->successMessage = null;
-        $this->errorMessage = null;
+        $this->errorMessage   = null;
 
         $rows = $this->project->projectCompounds()
             ->whereNull('compound_id')
             ->get();
 
-        $mapped = 0;
+        $total = $rows->count();
+
+        if ($total === 0) {
+            $this->errorMessage = 'No unmapped compounds to process.';
+            return;
+        }
+
+        // Watermark: any compound with id > this was created during this run (PubChem-sourced).
+        $watermark = (int) (Compound::max('id') ?? 0);
+
+        $localFound  = 0;
+        $pubchemNew  = 0;
+        $notFound    = 0;
+        $service     = app(CompoundMappingService::class);
 
         foreach ($rows as $row) {
-            $input = trim($row->custom_name);
-
-            if (!$input) {
+            if (!trim($row->custom_name ?? '')) {
+                $notFound++;
                 continue;
             }
 
-            $normalized = Str::lower($input);
+            try {
+                $mapped = $service->mapProjectCompound($row);
 
-            $compound = Compound::whereRaw('LOWER(canonical_name) = ?', [$normalized])->first();
+                if ($mapped) {
+                    $row->refresh();
+                    if ($row->compound_id) {
+                        $compound  = $row->compound()->with('taxonomy')->first();
+                        $isTerpene = $this->computeIsTerpene($compound);
+                        $row->update([
+                            'is_terpene'   => $isTerpene,
+                            'terpene_type' => $isTerpene ? $this->computeTerpeneType($compound) : null,
+                        ]);
 
-            if (!$compound) {
-                $compound = Compound::whereHas('synonyms', function ($q) use ($normalized) {
-                    $q->whereRaw('LOWER(name) = ?', [$normalized]);
-                })->first();
-            }
-
-            if (!$compound) {
-                $compound = Compound::whereRaw('LOWER(canonical_name) LIKE ?', ["%{$normalized}%"])
-                    ->first();
-            }
-
-            if ($compound) {
-                $compound->load('taxonomy');
-                $isTerpene = $this->computeIsTerpene($compound);
-                $row->update([
-                    'compound_id'  => $compound->id,
-                    'is_mapped'    => true,
-                    'is_terpene'   => $isTerpene,
-                    'terpene_type' => $isTerpene ? $this->computeTerpeneType($compound) : null,
+                        if ($row->compound_id > $watermark) {
+                            $pubchemNew++;
+                        } else {
+                            $localFound++;
+                        }
+                    } else {
+                        $notFound++;
+                    }
+                } else {
+                    $notFound++;
+                }
+            } catch (\Throwable $e) {
+                Log::error('mapLocal batch failed', [
+                    'project_compound_id' => $row->id,
+                    'error'               => $e->getMessage(),
                 ]);
-                $mapped++;
+                $notFound++;
             }
         }
-
-        $total = $rows->count();
 
         $this->detectDuplicates();
+        $this->project->refresh();
 
-        if ($mapped === 0) {
-            $this->errorMessage = 'No compounds could be matched in the local database.';
-        } else {
-            $this->successMessage = "Mapped {$mapped} of {$total} compound(s) using the local database.";
-        }
+        $this->mappingLog = [
+            'ran_at'      => now()->format('Y-m-d H:i:s'),
+            'total'       => $total,
+            'local_found' => $localFound,
+            'pubchem_new' => $pubchemNew,
+            'not_found'   => $notFound,
+        ];
+        $this->showMappingLogModal = true;
+    }
+
+    public function closeMappingLogModal(): void
+    {
+        $this->showMappingLogModal = false;
     }
 
     public function mapSingle(int $id): void
