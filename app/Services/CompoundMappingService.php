@@ -618,47 +618,90 @@ class CompoundMappingService
 
     private function upsertCompoundFromPubChem(array $data): Compound
     {
-        $matchKey = match (true) {
-            !empty($data['inchikey']) => ['inchikey'    => $data['inchikey']],
-            !empty($data['inchi'])    => ['inchi'       => $data['inchi']],
-            !empty($data['cid'])      => ['pubchem_cid' => $data['cid']],
-            default                   => ['canonical_name' => $data['iupac_name'] ?? 'unknown'],
-        };
+        // Search by each unique key in priority order so we never hit a constraint violation.
+        $compound = null;
+        if (!empty($data['inchikey'])) {
+            $compound = Compound::where('inchikey', $data['inchikey'])->first();
+        }
+        if (!$compound && !empty($data['inchi'])) {
+            $compound = Compound::where('inchi', $data['inchi'])->first();
+        }
+        if (!$compound && !empty($data['cid'])) {
+            $compound = Compound::where('pubchem_cid', $data['cid'])->first();
+        }
 
-        return Compound::updateOrCreate(
-            $matchKey,
-            array_filter([
-                'canonical_name'    => $data['iupac_name']        ?? null,
-                'iupac_name'        => $data['iupac_name']        ?? null,
-                'molecular_formula' => $data['molecular_formula'] ?? null,
-                'inchi'             => $data['inchi']             ?? null,
-                'inchikey'          => $data['inchikey']          ?? null,
-                'smiles'            => $data['smiles']            ?? null,
-                'pubchem_cid'       => $data['cid']               ?? null,
-            ], fn($v) => $v !== null)
-        );
+        $attributes = array_filter([
+            'canonical_name'    => $data['iupac_name']        ?? null,
+            'iupac_name'        => $data['iupac_name']        ?? null,
+            'molecular_formula' => $data['molecular_formula'] ?? null,
+            'inchi'             => $data['inchi']             ?? null,
+            'inchikey'          => $data['inchikey']          ?? null,
+            'smiles'            => $data['smiles']            ?? null,
+            'pubchem_cid'       => $data['cid']               ?? null,
+        ], fn($v) => $v !== null);
+
+        if ($compound) {
+            $compound->update($attributes);
+            return $compound->fresh();
+        }
+
+        try {
+            return Compound::create($attributes);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Race condition: another request inserted the same compound concurrently.
+            if ($e->getCode() === '23505') {
+                if (!empty($data['inchikey']) && $found = Compound::where('inchikey', $data['inchikey'])->first()) {
+                    return $found;
+                }
+                if (!empty($data['inchi']) && $found = Compound::where('inchi', $data['inchi'])->first()) {
+                    return $found;
+                }
+            }
+            throw $e;
+        }
     }
 
     private function upsertCompoundFromChEBI(array $data): Compound
     {
-        $matchKey = match (true) {
-            !empty($data['inchikey']) => ['inchikey' => $data['inchikey']],
-            !empty($data['chebi_id']) => ['chebi_id' => $data['chebi_id']],
-            default                   => ['canonical_name' => $data['iupac_name'] ?? 'unknown'],
-        };
+        $compound = null;
+        if (!empty($data['inchikey'])) {
+            $compound = Compound::where('inchikey', $data['inchikey'])->first();
+        }
+        if (!$compound && !empty($data['inchi'])) {
+            $compound = Compound::where('inchi', $data['inchi'])->first();
+        }
+        if (!$compound && !empty($data['chebi_id'])) {
+            $compound = Compound::where('chebi_id', $data['chebi_id'])->first();
+        }
 
-        return Compound::updateOrCreate(
-            $matchKey,
-            array_filter([
-                'canonical_name' => $data['iupac_name'] ?? null,
-                'iupac_name'     => $data['iupac_name'] ?? null,
-                'inchi'          => $data['inchi']      ?? null,
-                'inchikey'       => $data['inchikey']   ?? null,
-                'smiles'         => $data['smiles']     ?? null,
-                'chebi_id'       => $data['chebi_id']   ?? null,
-                'hmdb_id'        => $data['hmdb_id']    ?? null,
-            ], fn($v) => $v !== null)
-        );
+        $attributes = array_filter([
+            'canonical_name' => $data['iupac_name'] ?? null,
+            'iupac_name'     => $data['iupac_name'] ?? null,
+            'inchi'          => $data['inchi']      ?? null,
+            'inchikey'       => $data['inchikey']   ?? null,
+            'smiles'         => $data['smiles']     ?? null,
+            'chebi_id'       => $data['chebi_id']   ?? null,
+            'hmdb_id'        => $data['hmdb_id']    ?? null,
+        ], fn($v) => $v !== null);
+
+        if ($compound) {
+            $compound->update($attributes);
+            return $compound->fresh();
+        }
+
+        try {
+            return Compound::create($attributes);
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() === '23505') {
+                if (!empty($data['inchikey']) && $found = Compound::where('inchikey', $data['inchikey'])->first()) {
+                    return $found;
+                }
+                if (!empty($data['inchi']) && $found = Compound::where('inchi', $data['inchi'])->first()) {
+                    return $found;
+                }
+            }
+            throw $e;
+        }
     }
 
     // ─────────────────────────────────────────────────────────────────────────

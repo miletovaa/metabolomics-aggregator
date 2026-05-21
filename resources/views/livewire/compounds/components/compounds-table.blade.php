@@ -138,7 +138,7 @@
                         @endif
                     </td>
 
-                    <td class="px-4 py-3 max-w-xs" x-show="cols.description" @click.stop>
+                    <td class="px-4 py-3 max-w-xs" x-show="cols.description">
                         <div
                             x-data="{
                                 editing: false,
@@ -167,7 +167,7 @@
                         >
                             <span
                                 x-show="!editing"
-                                @dblclick="startEdit()"
+                                @dblclick.stop="startEdit()"
                                 class="cursor-default truncate text-gray-600"
                                 title="Double-click to edit"
                                 x-text="value || '—'"

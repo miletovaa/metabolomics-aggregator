@@ -362,11 +362,10 @@
                                     }
                                 }"
                                 class="flex items-center gap-1.5 min-w-0"
-                                @click.stop
                             >
                                 <span
                                     x-show="!editing"
-                                    @dblclick="startEdit()"
+                                    @dblclick.stop="startEdit()"
                                     class="cursor-default truncate"
                                     title="Double-click to edit"
                                     x-text="name"
@@ -423,11 +422,10 @@
                                     }
                                 }"
                                 class="flex items-center gap-1.5 min-w-0"
-                                @click.stop
                             >
                                 <span
                                     x-show="!editing"
-                                    @dblclick="startEdit()"
+                                    @dblclick.stop="startEdit()"
                                     class="cursor-default"
                                     title="Double-click to edit"
                                     x-text="value || '—'"
@@ -505,11 +503,10 @@
                                     }
                                 }"
                                 class="flex items-center gap-1.5 min-w-0"
-                                @click.stop
                             >
                                 <span
                                     x-show="!editing"
-                                    @dblclick="startEdit()"
+                                    @dblclick.stop="startEdit()"
                                     class="cursor-default"
                                     title="Double-click to edit"
                                     x-text="value || '—'"
@@ -648,7 +645,7 @@
                             >
                                 <span
                                     x-show="!editing"
-                                    @dblclick="startEdit()"
+                                    @dblclick.stop="startEdit()"
                                     class="cursor-default truncate text-gray-600"
                                     title="Double-click to edit"
                                     x-text="value || '—'"
