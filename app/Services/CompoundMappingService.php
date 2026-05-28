@@ -66,24 +66,80 @@ class CompoundMappingService
             return false;
         }
 
-        // ── Step 1: local DB lookup ──────────────────────────────────────────
+        // ── Step 0: local DB lookup ──────────────────────────────────────────
         $compound = $this->findLocalByName($name);
+        if ($compound) {
+            $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
+            return true;
+        }
 
-        // ── Step 2: PubChem ──────────────────────────────────────────────────
-        if (!$compound) {
-            $pubchemData = $this->lookupPubChem($name);
-            if ($pubchemData) {
-                $compound = $this->upsertCompoundFromPubChem($pubchemData);
-                $this->storeSynonyms($compound, $pubchemData['synonyms'], $this->sourceId('PubChem'));
+        // ── Step 1: PubChem (by name, normalized name, reordered normalized name)
+        $pubchemData = $this->lookupPubChem($name);
+
+        if ($pubchemData) {
+            $compound = $this->upsertCompoundFromPubChem($pubchemData);
+            $this->storeSynonyms($compound, $pubchemData['synonyms'], $this->sourceId('PubChem'));
+
+            // ── HMDB (by InChI, InChIKey, SMILES, name, IUPAC, synonyms) ────
+            $hmdb = $this->lookupHmdb($compound, $pubchemData['synonyms'] ?? []);
+
+            if ($hmdb) {
+                // ── HMDB by HMDB ID → full enrichment ───────────────────────
+                $this->enrichFromHmdbData($compound, $hmdb);
+            } else {
+                // ── KEGG by CID ─────────────────────────────────────────────
+                $this->lookupKeggByCid($pubchemData['cid']);
+
+                // ── ClassyFire by InChIKey (regardless of KEGG result) ──────
+                if ($compound->inchikey && !$compound->taxonomy()->exists()) {
+                    $cfData = $this->lookupClassyFire($compound->inchikey);
+                    if ($cfData) {
+                        $this->storeTaxonomy($compound, $cfData, $this->sourceId('ClassyFire'));
+                    }
+                }
             }
+
+            // ── NIST by InChI ────────────────────────────────────────────────
+            $this->enrichNistRi($compound, $name);
+
+            $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
+            return true;
         }
 
-        if (!$compound) {
-            return false;
+        // ── Step 2: ChEBI (by name, normalized name, reordered normalized name)
+        $chebiData = $this->lookupChEBI($name);
+
+        if ($chebiData) {
+            $compound = $this->upsertCompoundFromChEBI($chebiData);
+            $this->storeSynonyms($compound, $chebiData['synonyms'], $this->sourceId('ChEBI'));
+
+            if (!empty($chebiData['ontology_roles'])) {
+                $this->storeOntologies(
+                    $compound,
+                    array_map(fn($r) => ['name' => $r, 'process_type' => 'ChEBI role'], $chebiData['ontology_roles']),
+                    $this->sourceId('ChEBI')
+                );
+            }
+
+            // ── HMDB by HMDB ID ──────────────────────────────────────────────
+            if (!empty($chebiData['hmdb_id'])) {
+                $hmdb = $this->lookupHmdbById($chebiData['hmdb_id']);
+                if ($hmdb) {
+                    $this->enrichFromHmdbData($compound, $hmdb);
+                }
+            }
+
+            // ── NIST by InChI ────────────────────────────────────────────────
+            $this->enrichNistRi($compound, $name);
+
+            $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
+            return true;
         }
 
-        $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
-        return true;
+        // ── Step 3: ChEBI not found → NIST by name ──────────────────────────
+        // NIST only provides RI values; without a structural identifier we
+        // cannot create a compound record, so the row remains unmapped.
+        return false;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -98,9 +154,16 @@ class CompoundMappingService
     public function normalizeName(string $name): string
     {
         $name = $this->normalizeGreek($name);
+        // ".alpha." → "alpha"  (existing)
         $name = (string) preg_replace(
             '/\.(alpha|beta|gamma|delta|epsilon|theta)\./i',
             '$1',
+            $name
+        );
+        // "alpha Isomethyl ionone" → "alpha-Isomethyl ionone"  (leading Greek word + space → hyphen)
+        $name = (string) preg_replace(
+            '/^(alpha|beta|gamma|delta|epsilon|theta)\s+/i',
+            '$1-',
             $name
         );
         return str_replace(['±', '- '], ['+-', '-'], trim($name));
@@ -118,20 +181,225 @@ class CompoundMappingService
     }
 
     /**
-     * Returns up to 3 name candidates: original → normalised → reordered.
+     * Returns name candidates: original → normalised → reordered → joined-suffix → inverted.
      */
     private function nameCandidates(string $name): array
     {
-        $candidates  = [$name];
-        $normalised  = $this->normalizeName($name);
+        $candidates = [$name];
+
+        $normalised = $this->normalizeName($name);
         if ($normalised !== $name) {
             $candidates[] = $normalised;
         }
+
         $reordered = $this->commaPrefixReorder($normalised);
         if ($reordered !== $normalised) {
             $candidates[] = $reordered;
         }
+
+        // Greek-prefix suffix collapsing:
+        //   "alpha-Isomethyl ionone" → "alpha-Isomethylionone"   (remove spaces)
+        //   "beta-iso-Methyl ionone" → "beta-isomethylionone"    (remove spaces + hyphens, lowercase)
+        $base = $reordered ?: $normalised;
+        if (preg_match('/^(alpha|beta|gamma|delta|epsilon|theta)-(.+)$/i', $base, $m)) {
+            $suffix = $m[2];
+            if (str_contains($suffix, ' ')) {
+                $candidates[] = $m[1] . '-' . str_replace(' ', '', $suffix);
+            }
+            $flat = strtolower(str_replace([' ', '-'], '', $suffix));
+            $candidates[] = $m[1] . '-' . $flat;
+        }
+
+        // "Base Name, 1,2,3-descriptor-" → "1,2,3-descriptor-Base Name"
+        $inverted = $this->generalCommaReorder($normalised);
+        if ($inverted !== $normalised) {
+            $candidates[] = $inverted;
+            // Move inline stereodescriptor to front if present in the inverted form
+            $stereoFront = $this->stereoToFront($inverted);
+            if ($stereoFront !== null) {
+                $candidates[] = $stereoFront;
+            }
+        }
+
+        // Non-hyphenated CAS inversion: "Peroxide, dimethyl" → "dimethyl Peroxide"
+        $plain = $this->plainCommaReorder($normalised);
+        if ($plain !== null) {
+            $candidates[] = $plain;
+            $candidates[] = strtolower($plain);
+        }
+
+        // CAS ester/acetate reorder:
+        //   "2-Propenoic acid, 3-(4-methoxyphenyl)-, 2-ethylhexyl ester"
+        //     → "2-ethylhexyl 3-(4-methoxyphenyl)-2-propenoate"
+        foreach ($this->casEsterReorder($normalised) as $c) {
+            $candidates[] = $c;
+        }
+
+        // Derivative comma removal: "Butyraldehyde, semicarbazone" → "Butyraldehyde semicarbazone"
+        $commaRemoved = (string) preg_replace('/,\s+/', ' ', $normalised, 1);
+        if ($commaRemoved !== $normalised) {
+            $candidates[] = $commaRemoved;
+            $candidates[] = strtolower($commaRemoved);
+        }
+
+        // Typo corrections: re-run candidates on the corrected form
+        $corrected = $this->applyTypoCorrections($normalised);
+        if ($corrected !== null) {
+            $candidates[] = $corrected;
+            $correctedInverted = $this->generalCommaReorder($corrected);
+            if ($correctedInverted !== $corrected) {
+                $candidates[] = $correctedInverted;
+            }
+            $correctedPlain = $this->plainCommaReorder($corrected);
+            if ($correctedPlain !== null) {
+                $candidates[] = $correctedPlain;
+            }
+        }
+
+        // Greek Unicode ↔ dotted ASCII form used in many chemical databases:
+        //   "1α" → "1.alpha."  |  "1.alpha." → "1α"
+        $dotted = $this->greekToDotted($name);
+        if ($dotted !== null) {
+            $candidates[] = $dotted;
+            $dottedInverted = $this->generalCommaReorder($dotted);
+            if ($dottedInverted !== $dotted) {
+                $candidates[] = $dottedInverted;
+            }
+        }
+        $unicode = $this->dottedToGreek($name);
+        if ($unicode !== null) {
+            $candidates[] = $unicode;
+            $unicodeInverted = $this->generalCommaReorder($unicode);
+            if ($unicodeInverted !== $unicode) {
+                $candidates[] = $unicodeInverted;
+            }
+        }
+
         return array_unique($candidates);
+    }
+
+    private function generalCommaReorder(string $name): string
+    {
+        // Matches: "<base>, <descriptor>-"  where ", " (with space) is the separator.
+        // Locant commas like "1,4-" never have a space after them, so \s+ safely picks
+        // the right comma even when the base name or descriptor contains locant commas.
+        if (!preg_match('/^(.+?),\s+(.+)-\s*$/', $name, $m)) {
+            return $name;
+        }
+        return $m[2] . '-' . trim($m[1]);
+    }
+
+    private function plainCommaReorder(string $name): ?string
+    {
+        // Handles non-hyphenated CAS inversions: "Peroxide, dimethyl" → "dimethyl Peroxide"
+        if (!preg_match('/^(.+?),\s+(.+)$/', $name, $m)) {
+            return null;
+        }
+        $base   = trim($m[1]);
+        $suffix = trim($m[2]);
+        // Skip if suffix ends with '-' (generalCommaReorder covers that)
+        // or contains ', ' (complex multi-part CAS name)
+        if (str_ends_with($suffix, '-') || str_contains($suffix, ', ')) {
+            return null;
+        }
+        return $suffix . ' ' . $base;
+    }
+
+    private function stereoToFront(string $name): ?string
+    {
+        // Moves inline stereodescriptors to the front:
+        //   "1,2,3-trimethyl-4-propenyl-, (E)-naphthalene" → "(E)-1,2,3-trimethyl-4-propenyl-naphthalene"
+        //   "8-(N-pyrrolidinyl)-, cis-Bicyclo[...]"        → "cis-8-(N-pyrrolidinyl)-Bicyclo[...]"
+        if (!preg_match('/^(.+),\s*((?:cis|trans|endo|exo|\([EZRSezrs+\-]\)))-(.+)$/i', $name, $m)) {
+            return null;
+        }
+        $prefix = strtolower(trim($m[2]));
+        $body   = rtrim(trim($m[1]), '- ');
+        $tail   = trim($m[3]);
+        return $prefix . '-' . $body . '-' . $tail;
+    }
+
+    private function casEsterReorder(string $name): array
+    {
+        $candidates = [];
+
+        // "Acid_name[, DESCRIPTOR-], ester_prefix ester" → "ester_prefix [DESCRIPTOR-]acid-ate"
+        if (preg_match('/^(.+?),\s+(.+?)\s+ester\s*$/i', $name, $m)) {
+            $base = trim($m[1]);
+            $rest = trim($m[2]);
+
+            if (preg_match('/^(.+),\s+([^,]+)$/', $rest, $m2)) {
+                $descriptor  = trim($m2[1]);
+                $esterPrefix = trim($m2[2]);
+            } else {
+                $descriptor  = '';
+                $esterPrefix = $rest;
+            }
+
+            // Strip " acid" and optional inline stereodescriptor from base
+            $baseEster = (string) preg_replace('/\s+acid(?:\s*\([^)]+\))?\s*-?\s*$/i', '', $base);
+            $baseEster = (string) preg_replace('/oic$/i', 'oate', $baseEster);
+            $baseEster = (string) preg_replace('/ic$/i',  'ate',  $baseEster);
+
+            $body = $descriptor !== '' ? $descriptor . $baseEster : $baseEster;
+            $candidates[] = strtolower("{$esterPrefix} {$body}");
+        }
+
+        // "Base, DESCRIPTOR-, acetate/formate/benzoate/..." → "DESCRIPTOR-base acetate"
+        if (preg_match('/^(.+?),\s+(.+?),\s+(acetate|formate|benzoate|propanoate|butyrate)\s*$/i', $name, $m)) {
+            $base       = trim($m[1]);
+            $descriptor = trim($m[2]);
+            $esterName  = strtolower(trim($m[3]));
+            $candidates[] = strtolower("{$descriptor}{$base} {$esterName}");
+        }
+
+        return array_filter(array_unique($candidates));
+    }
+
+    private function applyTypoCorrections(string $name): ?string
+    {
+        static $patterns = [
+            '/\bunae/i'           => 'unde',       // Unaecanal → Undecanal, Unaecane → Undecane
+            '/\bunaecyl\b/i'      => 'undecyl',    // Unaecyl → Undecyl
+            '/\binaene\b/i'       => 'indene',     // inaene → indene
+            '/\binaen\b/i'        => 'inden',      // inaen → inden
+            '/\btriptofane?\b/i'  => 'tryptophan', // triptofane/triptofan → tryptophan
+        ];
+
+        $corrected = $name;
+        foreach ($patterns as $pattern => $replacement) {
+            $corrected = (string) preg_replace($pattern, $replacement, $corrected);
+        }
+
+        return $corrected !== $name ? $corrected : null;
+    }
+
+    private function greekToDotted(string $name): ?string
+    {
+        static $map = [
+            'α' => '.alpha.', 'β' => '.beta.',   'γ' => '.gamma.',   'δ' => '.delta.',
+            'ε' => '.epsilon.','ζ' => '.zeta.',  'η' => '.eta.',     'θ' => '.theta.',
+            'ι' => '.iota.',  'κ' => '.kappa.',  'λ' => '.lambda.',  'μ' => '.mu.',
+            'ν' => '.nu.',    'ξ' => '.xi.',     'ο' => '.omicron.', 'π' => '.pi.',
+            'ρ' => '.rho.',   'σ' => '.sigma.',  'τ' => '.tau.',     'υ' => '.upsilon.',
+            'φ' => '.phi.',   'χ' => '.chi.',    'ψ' => '.psi.',     'ω' => '.omega.',
+        ];
+        $converted = strtr($name, $map);
+        return $converted !== $name ? $converted : null;
+    }
+
+    private function dottedToGreek(string $name): ?string
+    {
+        static $map = [
+            '.alpha.'   => 'α', '.beta.'    => 'β', '.gamma.'   => 'γ', '.delta.'   => 'δ',
+            '.epsilon.' => 'ε', '.zeta.'    => 'ζ', '.eta.'     => 'η', '.theta.'   => 'θ',
+            '.iota.'    => 'ι', '.kappa.'   => 'κ', '.lambda.'  => 'λ', '.mu.'      => 'μ',
+            '.nu.'      => 'ν', '.xi.'      => 'ξ', '.omicron.' => 'ο', '.pi.'      => 'π',
+            '.rho.'     => 'ρ', '.sigma.'   => 'σ', '.tau.'     => 'τ', '.upsilon.' => 'υ',
+            '.phi.'     => 'φ', '.chi.'     => 'χ', '.psi.'     => 'ψ', '.omega.'   => 'ω',
+        ];
+        $converted = strtr($name, $map);
+        return $converted !== $name ? $converted : null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -311,7 +579,7 @@ class CompoundMappingService
         return $this->hmdbPdo;
     }
 
-    public function lookupHmdb(Compound $compound): ?array
+    public function lookupHmdb(Compound $compound, array $synonyms = []): ?array
     {
         $pdo = $this->hmdbPdo();
         if (!$pdo) {
@@ -372,9 +640,60 @@ class CompoundMappingService
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
             }
 
+            // Fallback: match by PubChem synonyms
+            if (!$row && !empty($synonyms)) {
+                foreach (array_slice($synonyms, 0, 10) as $syn) {
+                    $syn = trim((string) $syn);
+                    if ($syn === '') continue;
+
+                    $stmt = $pdo->prepare(<<<SQL
+                        SELECT m.hmdb_id, m.name, m.inchi, m.inchi_key, m.smiles,
+                               m.synonyms, m.chemical_taxonomy_json,
+                               m.retention_indices_json, m.description,
+                               o.metabolic_processes_json, o.diseases_json, o.biomarker_for_json
+                        FROM metabolites m
+                        LEFT JOIN ontology o ON m.hmdb_id = o.hmdb_id
+                        WHERE LOWER(m.name) = LOWER(?)
+                           OR LOWER(m.synonyms) LIKE LOWER(?)
+                        LIMIT 1
+                    SQL);
+                    $stmt->execute([$syn, '%' . $syn . '%']);
+                    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                    if ($row) {
+                        break;
+                    }
+                }
+            }
+
             return $row ?: null;
         } catch (\Throwable $e) {
             Log::warning('HMDB SQLite lookup failed: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    private function lookupHmdbById(string $hmdbId): ?array
+    {
+        $pdo = $this->hmdbPdo();
+        if (!$pdo) {
+            return null;
+        }
+
+        try {
+            $stmt = $pdo->prepare(<<<SQL
+                SELECT m.hmdb_id, m.name, m.inchi, m.inchi_key, m.smiles,
+                       m.synonyms, m.chemical_taxonomy_json,
+                       m.retention_indices_json, m.description,
+                       o.metabolic_processes_json, o.diseases_json, o.biomarker_for_json
+                FROM metabolites m
+                LEFT JOIN ontology o ON m.hmdb_id = o.hmdb_id
+                WHERE m.hmdb_id = ?
+                LIMIT 1
+            SQL);
+            $stmt->execute([$hmdbId]);
+            return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
+        } catch (\Throwable $e) {
+            Log::warning('HMDB SQLite lookup by ID failed: ' . $e->getMessage());
             return null;
         }
     }
@@ -847,7 +1166,22 @@ class CompoundMappingService
     }
 
     // ─────────────────────────────────────────────────────────────────────────
-    // HTTP helper (with retry + rate-limit back-off)
+    // KEGG
+    // ─────────────────────────────────────────────────────────────────────────
+
+    private function lookupKeggByCid(string $cid): bool
+    {
+        $text = $this->httpGetText("https://rest.kegg.jp/conv/compound/pubchem:{$cid}");
+        if ($text === null || trim($text) === '') {
+            return false;
+        }
+        // Response format: "pubchem:702\tcpd:C00079\n"
+        $parts = explode("\t", trim($text));
+        return count($parts) >= 2 && trim($parts[1]) !== '';
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // HTTP helpers (with retry + rate-limit back-off)
     // ─────────────────────────────────────────────────────────────────────────
 
     private function httpGet(string $url, int $maxTries = 3): ?array
@@ -868,6 +1202,34 @@ class CompoundMappingService
                 }
 
                 // Rate limited – exponential back-off
+                if ($response->status() === 429) {
+                    sleep(2 ** $attempt);
+                    continue;
+                }
+
+                Log::debug("HTTP {$response->status()} for {$url}");
+            } catch (\Throwable $e) {
+                Log::debug("HTTP attempt {$attempt} failed for {$url}: {$e->getMessage()}");
+                if ($attempt < $maxTries - 1) {
+                    sleep($attempt + 1);
+                }
+            }
+        }
+        return null;
+    }
+
+    private function httpGetText(string $url, int $maxTries = 3): ?string
+    {
+        for ($attempt = 0; $attempt < $maxTries; $attempt++) {
+            try {
+                $response = Http::timeout(30)->get($url);
+
+                if ($response->successful()) {
+                    return $response->body();
+                }
+                if ($response->status() === 404) {
+                    return null;
+                }
                 if ($response->status() === 429) {
                     sleep(2 ** $attempt);
                     continue;
