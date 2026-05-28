@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\ActivityLog\Index as ActivityLogIndex;
 use App\Livewire\Compounds\Index as CompoundsIndex;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Create as ProjectsCreate;
@@ -22,6 +23,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/projects', ProjectsIndex::class)->name('projects.index');
     Route::get('/projects/create', ProjectsCreate::class)->name('projects.create');
     Route::get('/projects/{project}', ProjectsShow::class)->name('projects.show');
+
+    Route::get('/activity-log', ActivityLogIndex::class)->name('activity-log.index');
 });
 
 require __DIR__.'/auth.php';

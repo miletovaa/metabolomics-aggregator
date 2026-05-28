@@ -3,6 +3,7 @@
 namespace App\Livewire\Projects;
 
 use App\Models\ProjectCompound;
+use App\Services\ActivityLogger;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 use PhpOffice\PhpSpreadsheet\IOFactory;
@@ -30,6 +31,7 @@ class Create extends Component
         $project = auth()->user()->projects()->create([
             'name' => $this->name,
         ]);
+        ActivityLogger::createProject($project);
 
         // FILE IMPORT
         if ($this->file) {

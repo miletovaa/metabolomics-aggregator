@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\ProjectCompound;
 use App\Models\ProjectMappingJob;
 use App\Models\Taxonomy;
+use App\Services\ActivityLogger;
 use App\Services\CompoundMappingService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -485,6 +486,14 @@ class Show extends Component
             return;
         }
 
+        ActivityLogger::log(
+            'create_compound',
+            "Imported {$created} compound(s) into project \"{$this->project->name}\".",
+            $this->project,
+            $this->project->name,
+            ['project_id' => $this->project->id, 'compound_count' => $created, 'via' => 'file_import'],
+        );
+
         $this->reset('file');
         $this->showImportModal = false;
         $this->resetErrorBag();
@@ -545,6 +554,14 @@ class Show extends Component
             return;
         }
 
+        ActivityLogger::log(
+            'create_compound',
+            "Added {$created} compound(s) to project \"{$this->project->name}\".",
+            $this->project,
+            $this->project->name,
+            ['project_id' => $this->project->id, 'compound_count' => $created, 'via' => 'manual_entry'],
+        );
+
         $this->showImportModal = false;
         $this->resetErrorBag();
         $this->page = 1;
@@ -561,23 +578,32 @@ class Show extends Component
             return;
         }
 
-        $this->project->projectCompounds()->findOrFail($id)->update(['custom_name' => $name]);
+        $pc = $this->project->projectCompounds()->findOrFail($id);
+        $oldName = $pc->custom_name;
+        $pc->update(['custom_name' => $name]);
+        ActivityLogger::editCompound($pc, $this->project, ['custom_name' => "{$oldName} → {$name}"]);
         $this->notify('success', 'Custom name updated.');
     }
 
     public function updateRt(int $id, string $value): void
     {
-        $this->project->projectCompounds()->findOrFail($id)->update([
-            'rt' => $this->normalizeOptionalNumber($value),
-        ]);
+        $pc    = $this->project->projectCompounds()->findOrFail($id);
+        $oldRt = $pc->rt;
+        $newRt = $this->normalizeOptionalNumber($value);
+        $pc->update(['rt' => $newRt]);
+        $fmt = fn(?float $v) => $v !== null ? number_format($v, 2) : 'null';
+        ActivityLogger::editCompound($pc, $this->project, ['ri' => $fmt($oldRt) . ' → ' . $fmt($newRt)]);
         $this->notify('success', 'RI updated.');
     }
 
     public function updateMz(int $id, string $value): void
     {
-        $this->project->projectCompounds()->findOrFail($id)->update([
-            'mz' => $this->normalizeOptionalNumber($value),
-        ]);
+        $pc    = $this->project->projectCompounds()->findOrFail($id);
+        $oldMz = $pc->mz;
+        $newMz = $this->normalizeOptionalNumber($value);
+        $pc->update(['mz' => $newMz]);
+        $fmt = fn(?float $v) => $v !== null ? number_format($v, 2) : 'null';
+        ActivityLogger::editCompound($pc, $this->project, ['mz' => $fmt($oldMz) . ' → ' . $fmt($newMz)]);
         $this->notify('success', 'm/z updated.');
     }
 
@@ -595,6 +621,17 @@ class Show extends Component
         $this->project->projectCompounds()->findOrFail($id)->update([
             'custom_taxonomy' => $value === '' ? null : $value,
         ]);
+    }
+
+    public function deleteCompound(int $id): void
+    {
+        $pc   = $this->project->projectCompounds()->findOrFail($id);
+        $name = $pc->custom_name ?? $pc->input_name ?? "#{$id}";
+        $pc->delete();
+        ActivityLogger::deleteCompound($name, $this->project);
+        $this->detectDuplicates();
+        $this->project->refresh();
+        $this->notify('success', "Deleted \"{$name}\".");
     }
 
     public function dismissNotification(): void
@@ -693,6 +730,8 @@ class Show extends Component
         $rows = $this->project->projectCompounds()
             ->with(['compound', 'compound.taxonomy', 'compound.retentionIndices.source', 'compound.synonyms'])
             ->get();
+
+        ActivityLogger::dumpCompounds($this->project, $rows->count());
 
         $data = $rows->map(fn($pc) => $this->buildExportRow($pc, $fields))->all();
 

@@ -3,6 +3,7 @@
 namespace App\Livewire\Projects;
 
 use App\Models\Project;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
@@ -25,7 +26,9 @@ class Index extends Component
         $project = Auth::user()->projects()->findOrFail($id);
 
         try {
+            $oldName = $project->name;
             $project->update(['name' => $name]);
+            ActivityLogger::editProject($project, ['name' => "{$oldName} → {$name}"]);
             $this->successMessage = 'Project renamed.';
             $this->errorMessage   = null;
         } catch (\Exception $e) {
@@ -41,7 +44,9 @@ class Index extends Component
         }
 
         $project = Auth::user()->projects()->findOrFail($id);
+        $oldStatus = $project->status;
         $project->update(['status' => $status]);
+        ActivityLogger::editProject($project, ['status' => "{$oldStatus} → {$status}"]);
 
         $this->successMessage = 'Status updated.';
         $this->errorMessage   = null;
@@ -50,7 +55,9 @@ class Index extends Component
     public function deleteProject(int $id): void
     {
         $project = Auth::user()->projects()->findOrFail($id);
+        $name    = $project->name;
         $project->delete();
+        ActivityLogger::deleteProject($name, $id);
 
         $this->successMessage = 'Project deleted.';
         $this->errorMessage   = null;
