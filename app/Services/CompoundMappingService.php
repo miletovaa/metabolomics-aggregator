@@ -102,6 +102,12 @@ class CompoundMappingService
             // ── NIST by InChI ────────────────────────────────────────────────
             $this->enrichNistRi($compound, $name);
 
+            // ── Cross-source InChI consistency check ─────────────────────────
+            $this->checkInchiConsistency($compound, $name, array_filter([
+                'PubChem' => ['inchikey' => $pubchemData['inchikey'] ?? null, 'formula' => $pubchemData['formula'] ?? null],
+                'HMDB'    => $hmdb ? ['inchikey' => $hmdb['inchi_key'] ?? null] : null,
+            ]));
+
             $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
             return true;
         }
@@ -122,6 +128,7 @@ class CompoundMappingService
             }
 
             // ── HMDB by HMDB ID ──────────────────────────────────────────────
+            $hmdb = null;
             if (!empty($chebiData['hmdb_id'])) {
                 $hmdb = $this->lookupHmdbById($chebiData['hmdb_id']);
                 if ($hmdb) {
@@ -131,6 +138,11 @@ class CompoundMappingService
 
             // ── NIST by InChI ────────────────────────────────────────────────
             $this->enrichNistRi($compound, $name);
+
+            $this->checkInchiConsistency($compound, $name, array_filter([
+                'ChEBI' => ['inchikey' => $chebiData['inchikey'] ?? null, 'formula' => $chebiData['formula'] ?? null],
+                'HMDB'  => $hmdb ? ['inchikey' => $hmdb['inchi_key'] ?? null] : null,
+            ]));
 
             $row->update(['compound_id' => $compound->id, 'is_mapped' => true]);
             return true;
@@ -400,6 +412,85 @@ class CompoundMappingService
         ];
         $converted = strtr($name, $map);
         return $converted !== $name ? $converted : null;
+    }
+
+    private function checkInchiConsistency(Compound $compound, string $name, array $sourcesData): void
+    {
+        $inchikeys = [];
+        $formulas  = [];
+
+        // Locally stored values (our compounds table) are the anchor
+        if ($compound->inchikey)          $inchikeys['Local']    = $compound->inchikey;
+        if ($compound->molecular_formula) $formulas['Local']     = $compound->molecular_formula;
+
+        foreach ($sourcesData as $source => $data) {
+            if (!empty($data['inchikey'])) $inchikeys[$source] = $data['inchikey'];
+            if (!empty($data['formula']))  $formulas[$source]  = $data['formula'];
+        }
+
+        // NIST check: fast local SQLite lookup, formula comparison only
+        $nistInchi = $this->nistInchiByName($name);
+        if ($nistInchi) {
+            $nistFormula = $this->extractInchiFormula($nistInchi);
+            if ($nistFormula) $formulas['NIST'] = $nistFormula;
+        }
+
+        $uniqueKeys     = array_unique(array_values($inchikeys));
+        $uniqueFormulas = array_unique(array_values($formulas));
+
+        $inchikeyMismatch = count($uniqueKeys)     > 1;
+        $formulaMismatch  = count($uniqueFormulas) > 1;
+
+        if (!$inchikeyMismatch && !$formulaMismatch) {
+            return; // all sources agree
+        }
+
+        $type = match (true) {
+            $inchikeyMismatch && $formulaMismatch => 'inchikey+formula',
+            $inchikeyMismatch                     => 'inchikey',
+            default                               => 'formula',
+        };
+
+        Log::warning('InChI inconsistency detected during mapping', [
+            'compound_id'   => $compound->id,
+            'compound_name' => $compound->canonical_name,
+            'search_name'   => $name,
+            'mismatch_type' => $type,
+            'inchikeys'     => $inchikeys,
+            'formulas'      => $formulas,
+        ]);
+    }
+
+    private function nistInchiByName(string $name): ?string
+    {
+        $pdo = $this->nistPdo();
+        if ($pdo === null) {
+            return null;
+        }
+
+        $stmt = $pdo->prepare(
+            'SELECT inchi FROM nist_compounds
+              WHERE LOWER(compound_name) = LOWER(?) AND inchi IS NOT NULL
+              LIMIT 1'
+        );
+        $stmt->execute([trim($name)]);
+        $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        return $row['inchi'] ?? null;
+    }
+
+    private function extractInchiFormula(string $inchi): ?string
+    {
+        // "InChI=1S/C8H10N4O2/c..." → "C8H10N4O2"
+        // Uses [^/]+ for the version layer (not greedy \S+) to avoid capturing
+        // stereo layers like /m1/ or /s1/ at the end of the string.
+        if (preg_match('/^InChI=[^\/]+\/([A-Za-z0-9]+)\//', $inchi, $m)) {
+            return $m[1];
+        }
+        if (preg_match('/^InChI=[^\/]+\/([A-Za-z0-9]+)$/', $inchi, $m)) {
+            return $m[1];
+        }
+        return null;
     }
 
     // ─────────────────────────────────────────────────────────────────────────
