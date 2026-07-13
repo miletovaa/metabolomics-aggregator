@@ -23,16 +23,18 @@
             x-transition:enter-end="opacity-100 scale-100"
         >
             {{-- Header --}}
-            <div class="flex items-center justify-between border-b px-6 py-4">
-                <div>
-                    <h2 class="text-lg font-semibold text-gray-900">Mapping complete</h2>
-                    <p class="text-xs text-gray-400 mt-0.5">{{ $mappingLog['ran_at'] }}</p>
+            <div class="rounded-t-2xl px-6 py-4 bg-green-600">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h2 class="text-lg font-bold text-white">Mapping complete</h2>
+                        <p class="text-white/70 text-sm mt-0.5">{{ $mappingLog['ran_at'] }}</p>
+                    </div>
+                    <button
+                        type="button"
+                        @click="open = false; $wire.closeMappingLogModal()"
+                        class="text-white/70 hover:text-white text-xl leading-none"
+                    >✕</button>
                 </div>
-                <button
-                    type="button"
-                    @click="open = false; $wire.closeMappingLogModal()"
-                    class="rounded-lg px-3 py-1 text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                >✕</button>
             </div>
 
             {{-- Stats --}}
@@ -85,7 +87,7 @@
                 @endif
             </div>
 
-            <div class="border-t px-6 py-4 flex justify-end">
+            <div class="border-t px-6 py-4 flex justify-end rounded-b-2xl bg-gray-50">
                 <button
                     type="button"
                     @click="open = false; $wire.closeMappingLogModal()"

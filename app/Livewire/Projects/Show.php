@@ -101,6 +101,17 @@ class Show extends Component
     public string $filterKingdom   = '';
     public string $filterClass     = '';
 
+    // Export filters
+    public bool $exportFilterIsMapped   = false;
+    public bool $exportFilterIsUnmapped = false;
+    public bool $exportFilterHasPubchem = false;
+    public bool $exportFilterHasHmdb    = false;
+    public bool $exportFilterHasCas     = false;
+    public bool $exportFilterHasSmiles  = false;
+    public bool $exportFilterIsTerpene  = false;
+    public string $exportFilterKingdom  = '';
+    public string $exportFilterClass    = '';
+
     // Notification state
     public ?string $successMessage    = null;
     public ?string $errorMessage      = null;
@@ -110,6 +121,11 @@ class Show extends Component
     public bool  $showMappingLogModal  = false;
     public array $mappingLog           = [];
     public ?int  $pendingMappingJobId  = null;
+
+    // Conflict modal
+    public bool   $showConflictModal = false;
+    public string $conflictType      = 'name'; // 'name' | 'mapped'
+    public array  $conflictGroups    = [];
 
     public function mount(Project $project): void
     {
@@ -152,6 +168,12 @@ class Show extends Component
 
     public function updated(string $property): void
     {
+        if (str_starts_with($property, 'exportFilter')) {
+            if ($property === 'exportFilterKingdom') {
+                $this->exportFilterClass = '';
+            }
+            return;
+        }
         if (!str_starts_with($property, 'filter')) {
             return;
         }
@@ -173,6 +195,19 @@ class Show extends Component
         $this->filterKingdom    = '';
         $this->filterClass      = '';
         $this->page             = 1;
+    }
+
+    public function clearExportFilters(): void
+    {
+        $this->exportFilterIsMapped   = false;
+        $this->exportFilterIsUnmapped = false;
+        $this->exportFilterHasPubchem = false;
+        $this->exportFilterHasHmdb    = false;
+        $this->exportFilterHasCas     = false;
+        $this->exportFilterHasSmiles  = false;
+        $this->exportFilterIsTerpene  = false;
+        $this->exportFilterKingdom    = '';
+        $this->exportFilterClass      = '';
     }
 
     private function computeIsTerpene(Compound $compound): bool
@@ -308,6 +343,14 @@ class Show extends Component
         }
 
         $this->mappingLog = [];
+
+        // After closing the mapping log, surface any mapped duplicates
+        $groups = $this->buildMappedDuplicates();
+        if (!empty($groups)) {
+            $this->conflictType   = 'mapped';
+            $this->conflictGroups = $groups;
+            $this->showConflictModal = true;
+        }
     }
 
     public function mapSingle(int $id): void
@@ -500,6 +543,13 @@ class Show extends Component
         $this->page = 1;
         $this->project->refresh();
         $this->notify('success', "Successfully imported {$created} compound(s).");
+
+        $conflicts = $this->buildNameConflicts();
+        if (!empty($conflicts)) {
+            $this->conflictType      = 'name';
+            $this->conflictGroups    = $conflicts;
+            $this->showConflictModal = true;
+        }
     }
 
     public function addManualRow(): void
@@ -567,6 +617,13 @@ class Show extends Component
         $this->page = 1;
         $this->project->refresh();
         $this->notify('success', "Successfully saved {$created} compound(s).");
+
+        $conflicts = $this->buildNameConflicts();
+        if (!empty($conflicts)) {
+            $this->conflictType      = 'name';
+            $this->conflictGroups    = $conflicts;
+            $this->showConflictModal = true;
+        }
     }
 
     public function updateCustomName(int $id, string $name): void
@@ -622,6 +679,121 @@ class Show extends Component
             'custom_taxonomy' => $value === '' ? null : $value,
         ]);
     }
+
+    // ── Conflict modal ────────────────────────────────────────────────────────
+
+    private function buildNameConflicts(): array
+    {
+        return $this->project->projectCompounds()
+            ->select(['id', 'input_name', 'custom_name', 'rt', 'mz', 'is_mapped'])
+            ->get()
+            ->groupBy(fn($pc) => mb_strtolower(trim($pc->input_name ?? $pc->custom_name ?? '')))
+            ->filter(fn($g, $key) => $g->count() > 1 && $key !== '')
+            ->map(fn($g, $key) => [
+                'key'  => $key,
+                'type' => 'name',
+                'rows' => $g->map(fn($pc) => [
+                    'id'          => $pc->id,
+                    'input_name'  => $pc->input_name,
+                    'custom_name' => $pc->custom_name,
+                    'rt'          => $pc->rt,
+                    'mz'          => $pc->mz,
+                    'is_mapped'   => (bool) $pc->is_mapped,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function buildMappedDuplicates(): array
+    {
+        return $this->project->projectCompounds()
+            ->whereNotNull('compound_id')
+            ->select(['id', 'input_name', 'custom_name', 'rt', 'mz', 'compound_id'])
+            ->get()
+            ->groupBy('compound_id')
+            ->filter(fn($g) => $g->count() > 1)
+            ->map(fn($g) => [
+                'key'  => (string) $g->first()->compound_id,
+                'type' => 'mapped',
+                'rows' => $g->map(fn($pc) => [
+                    'id'          => $pc->id,
+                    'input_name'  => $pc->input_name,
+                    'custom_name' => $pc->custom_name,
+                    'rt'          => $pc->rt,
+                    'mz'          => $pc->mz,
+                    'is_mapped'   => true,
+                ])->values()->all(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    private function refreshConflicts(): void
+    {
+        $groups = $this->conflictType === 'name'
+            ? $this->buildNameConflicts()
+            : $this->buildMappedDuplicates();
+
+        $this->detectDuplicates();
+        $this->project->refresh();
+
+        if (empty($groups)) {
+            $this->showConflictModal = false;
+            $this->conflictGroups    = [];
+        } else {
+            $this->conflictGroups = $groups;
+        }
+    }
+
+    public function closeConflictModal(): void
+    {
+        $this->showConflictModal = false;
+        $this->conflictGroups    = [];
+    }
+
+    public function keepConflictRow(int $keepId, array $deleteIds): void
+    {
+        ProjectCompound::whereIn('id', array_map('intval', $deleteIds))->delete();
+        $this->refreshConflicts();
+    }
+
+    public function deleteConflictGroup(array $ids): void
+    {
+        ProjectCompound::whereIn('id', array_map('intval', $ids))->delete();
+        $this->refreshConflicts();
+    }
+
+    public function saveConflictEdit(int $keepId, string $name, string $rt, string $mz): void
+    {
+        // Find which IDs to delete (all others in same conflict group)
+        $deleteIds = [];
+        foreach ($this->conflictGroups as $group) {
+            $groupIds = array_column($group['rows'], 'id');
+            if (in_array($keepId, $groupIds, true)) {
+                $deleteIds = array_values(array_diff($groupIds, [$keepId]));
+                break;
+            }
+        }
+
+        $pc = $this->project->projectCompounds()->findOrFail($keepId);
+        $updates = [];
+        $trimmed = trim($name);
+        if ($trimmed !== '' && $trimmed !== $pc->custom_name) {
+            $updates['custom_name'] = $trimmed;
+        }
+        $updates['rt'] = $this->normalizeOptionalNumber($rt);
+        $updates['mz'] = $this->normalizeOptionalNumber($mz);
+        $pc->update($updates);
+
+        if (!empty($deleteIds)) {
+            ProjectCompound::whereIn('id', $deleteIds)->delete();
+        }
+
+        $this->refreshConflicts();
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     public function deleteCompound(int $id): void
     {
@@ -729,6 +901,19 @@ class Show extends Component
 
         $rows = $this->project->projectCompounds()
             ->with(['compound', 'compound.taxonomy', 'compound.retentionIndices.source', 'compound.synonyms'])
+            ->when($this->exportFilterIsMapped,    fn($q) => $q->where('is_mapped', true))
+            ->when($this->exportFilterIsUnmapped,  fn($q) => $q->where('is_mapped', false))
+            ->when($this->exportFilterHasPubchem,  fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('pubchem_cid')))
+            ->when($this->exportFilterHasHmdb,     fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('hmdb_id')))
+            ->when($this->exportFilterHasCas,      fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('cas')))
+            ->when($this->exportFilterHasSmiles,   fn($q) => $q->whereHas('compound', fn($cq) => $cq->whereNotNull('smiles')))
+            ->when($this->exportFilterIsTerpene,   fn($q) => $q->where('project_compounds.is_terpene', true))
+            ->when($this->exportFilterKingdom !== '', fn($q) => $q->whereHas('compound.taxonomy', fn($tq) =>
+                $tq->where('kingdom', $this->exportFilterKingdom)
+            ))
+            ->when($this->exportFilterClass !== '', fn($q) => $q->whereHas('compound.taxonomy', fn($tq) =>
+                $tq->where('class', $this->exportFilterClass)
+            ))
             ->get();
 
         ActivityLogger::dumpCompounds($this->project, $rows->count());
@@ -909,6 +1094,23 @@ class Show extends Component
             ->orderBy('class')
             ->pluck('class');
 
+        $exportClasses = Taxonomy::whereIn('compound_id', $projectCompoundIds)
+            ->whereNotNull('class')
+            ->when($this->exportFilterKingdom !== '', fn($q) => $q->where('kingdom', $this->exportFilterKingdom))
+            ->distinct()
+            ->orderBy('class')
+            ->pluck('class');
+
+        $exportActiveFilterCount = (int) $this->exportFilterIsMapped
+            + (int) $this->exportFilterIsUnmapped
+            + (int) $this->exportFilterHasPubchem
+            + (int) $this->exportFilterHasHmdb
+            + (int) $this->exportFilterHasCas
+            + (int) $this->exportFilterHasSmiles
+            + (int) $this->exportFilterIsTerpene
+            + (int) ($this->exportFilterKingdom !== '')
+            + (int) ($this->exportFilterClass !== '');
+
         $activeFilterCount = (int) $this->filterIsMapped
             + (int) $this->filterIsUnmapped
             + (int) $this->filterHasPubchem
@@ -950,6 +1152,8 @@ class Show extends Component
             'activeFilterCount',
             'selectedProjectCompound',
             'exportFieldGroups',
+            'exportClasses',
+            'exportActiveFilterCount',
         ))->layout('layouts.app');
     }
 }

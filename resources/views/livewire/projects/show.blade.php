@@ -845,6 +845,7 @@
 
     @include('livewire.projects.components.project-compound-modal')
     @include('livewire.projects.components.mapping-log-modal')
+    @include('livewire.projects.components.conflict-modal')
 
     {{-- ── Export modal ── --}}
     <div
@@ -910,6 +911,73 @@
                                 </div>
                             </div>
                         @endforeach
+                    </div>
+                </div>
+
+                {{-- Export filters --}}
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <h3 class="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                            Filters
+                            @if($exportActiveFilterCount > 0)
+                                <span class="rounded-full bg-blue-500 text-white text-xs leading-none px-1.5 py-0.5">{{ $exportActiveFilterCount }}</span>
+                            @endif
+                        </h3>
+                        @if($exportActiveFilterCount > 0)
+                            <button wire:click="clearExportFilters" class="text-xs text-red-500 hover:text-red-700 hover:underline">Clear all</button>
+                        @endif
+                    </div>
+
+                    <div class="flex flex-wrap gap-x-6 gap-y-2 mb-4">
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterIsMapped" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Is Mapped
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterIsUnmapped" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Unmapped
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterHasPubchem" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Has PubChem CID
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterHasHmdb" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Has HMDB
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterHasCas" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Has CAS
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterHasSmiles" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Has SMILES
+                        </label>
+                        <label class="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input type="checkbox" wire:model.live="exportFilterIsTerpene" class="rounded border-gray-300 text-blue-600 focus:ring-blue-400">
+                            Is Terpene
+                        </label>
+                    </div>
+
+                    <div class="flex gap-4">
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Kingdom</p>
+                            <select wire:model.live="exportFilterKingdom" class="text-sm rounded-lg border border-gray-300 px-2 py-1.5 focus:outline-none focus:ring focus:ring-blue-200">
+                                <option value="">All kingdoms</option>
+                                @foreach($kingdoms as $kingdom)
+                                    <option value="{{ $kingdom }}">{{ $kingdom }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 mb-1">Class</p>
+                            <select wire:model.live="exportFilterClass" class="text-sm rounded-lg border border-gray-300 px-2 py-1.5 focus:outline-none focus:ring focus:ring-blue-200 disabled:opacity-40 disabled:cursor-not-allowed" @disabled($exportFilterKingdom === '')>
+                                <option value="">All classes</option>
+                                @foreach($exportClasses as $class)
+                                    <option value="{{ $class }}">{{ $class }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
