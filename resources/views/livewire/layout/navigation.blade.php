@@ -24,7 +24,7 @@ new class extends Component
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}" wire:navigate>
-                        IJS O2 ORG Database
+                        ORG Database <span className="text-gray-500 ">Manager & Aggregator</span>
                     </a>
                 </div>
 
