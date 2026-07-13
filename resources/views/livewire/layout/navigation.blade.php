@@ -24,7 +24,7 @@ new class extends Component
                 <!-- Logo -->
                 <div class="shrink-0 flex items-center">
                     <a href="{{ route('dashboard') }}" wire:navigate>
-                        IJS O2 Metabolomics Database
+                        IJS O2 ORG Database
                     </a>
                 </div>
 
@@ -36,8 +36,11 @@ new class extends Component
                     <x-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
                         {{ __('Compounds') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate>
-                        {{ __('History') }}
+                    <x-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate title="{{ __('History') }}">
+                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                        </svg>
+                        <span class="sr-only">{{ __('History') }}</span>
                     </x-nav-link>
                 </div>
             </div>

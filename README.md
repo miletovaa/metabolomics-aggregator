@@ -55,7 +55,7 @@ Creation of the database.
 Implementation of the schema according to the current structure:
 
 * compounds
-* sources
+* sources  
 * projects
 * project_compounds
 * compound_synonyms
