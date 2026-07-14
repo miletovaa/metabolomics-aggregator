@@ -44,6 +44,9 @@ class ActivityLog extends Model
             'edit_compound'    => 'Edited compound',
             'delete_compound'  => 'Deleted compound',
             'dump_compounds'   => 'Exported compounds',
+            'create_sample'    => 'Logged sample',
+            'edit_sample'      => 'Edited sample',
+            'delete_sample'    => 'Deleted sample',
             default            => ucfirst(str_replace('_', ' ', $this->event_type)),
         };
     }
@@ -51,11 +54,11 @@ class ActivityLog extends Model
     public function eventColor(): string
     {
         return match ($this->event_type) {
-            'create_project', 'create_compound' => 'green',
-            'edit_project',   'edit_compound'   => 'blue',
-            'delete_project', 'delete_compound' => 'red',
-            'dump_compounds'                    => 'purple',
-            default                             => 'gray',
+            'create_project', 'create_compound', 'create_sample' => 'green',
+            'edit_project',   'edit_compound',   'edit_sample'   => 'blue',
+            'delete_project', 'delete_compound', 'delete_sample' => 'red',
+            'dump_compounds'                                     => 'purple',
+            default                                               => 'gray',
         };
     }
 }

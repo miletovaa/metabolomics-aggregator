@@ -34,5 +34,10 @@ class User extends Authenticatable
     {
         return $this->hasMany(Project::class);
     }
+
+    public function responsibleSamples()
+    {
+        return $this->hasMany(Sample::class, 'responsible_analyst_id');
+    }
 }
 

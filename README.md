@@ -631,3 +631,41 @@ php artisan view:cache
     alternative_parents string(255) nullable
     raw_json json nullable
     timestamps
+
+### Samples:
+
+    id
+    lab_sample_id string nullable
+    external_id string nullable
+    matrix_group string nullable
+    sample_group string(50) — food | environment | human_medical
+    sample_subgroup string(50) nullable — depends on sample_group, see Sample::SUBGROUPS
+    date_received date nullable
+    storage_condition string(50) nullable — dark_room_temp | refrigerated | frozen | deep_frozen
+    storage_condition_details json nullable — multi-select: vacuum_sealed, inert_gas, sterile, controlled_humidity, dry
+    responsible_analyst_id foreign_id nullable (users)
+    project_id foreign_id nullable (projects)
+    purpose_of_analysis json nullable — multi-select, see Sample::PURPOSES_OF_ANALYSIS
+    planned_analysis json nullable — multi-select, see Sample::PLANNED_ANALYSES
+    sample_type string(50) nullable — plant | animal | environmental
+    type_details json nullable — free-form, shape depends on sample_type (see below)
+    timestamps
+
+`type_details` holds the fields that only apply to one `sample_type`, instead of a wide mostly-null table (same pattern as `Taxonomies.raw_json`):
+
+* **plant**: latin_name, part_of_plant (roots, stems, leaves, flowers, fruits, seeds, buds, rhizomes_tubers, wood, epidermal_tissues), harvest_year, status (authentic_slo, test_slo, abroad), producer (authentic, market), production_type (organic, conventional), declared_country_of_origin, country_of_origin_of_raw_material, region_of_origin, irrigation (yes/no), source_of_water (surface_water, groundwater, rainwater, treated_wastewater), processing_type (raw, fresh, frozen, fermented, canned_preserved, dried, freeze_dried), note
+* **animal**: common_name, latin_name, part_of_animal (muscle, fat, bone, milk, eggs, skin, liver, kidney, heart, lungs, spleen, brain), status (authentic_slo, test_slo, abroad), producer (authentic_slo, test_slo, abroad), production_type (organic, conventional), country_of_origin, region_of_origin, feed (multi-select: forage, silage, hay, concentrates, protein_feed_animal, protein_feed_plant, mineral_supplements, vitamin_supplements, by_product_feeds, complete_feeds, medications_probiotics), source_of_drinking_water (surface_water, groundwater, rainwater, treated_wastewater), processing_type (raw, fresh, frozen, fermented, canned_preserved, dried, freeze_dried, minced, cured), note
+* **environmental**: depth, temperature_at_sampling, ph, conductivity, note
+
+All option lists live as constants on `App\Models\Sample` (`GROUPS`, `SUBGROUPS`, `STORAGE_CONDITIONS`, `STORAGE_CONDITION_DETAILS`, `PURPOSES_OF_ANALYSIS`, `PLANNED_ANALYSES`, `SAMPLE_TYPES`, `STATUS_OPTIONS`, `PRODUCTION_TYPES`, `SOURCE_OF_WATER`, `PART_OF_PLANT`, `PLANT_PRODUCER`, `PLANT_PROCESSING_TYPES`, `PART_OF_ANIMAL`, `ANIMAL_PROCESSING_TYPES`, `ANIMAL_FEED_TYPES`) rather than lookup tables, matching the existing `Project::STATUSES` convention.
+
+Pages: `/samples` (list, search, delete), `/samples/create`, `/samples/{sample}/edit` — the project field is a searchable combobox that lets you pick an existing project or create one on the fly by name (`Project::firstOrCreate`).
+
+## Entity architecture: Workspace vs. Catalog
+
+As the schema grows beyond Projects/Compounds, entities split into two kinds, reflected in navigation and the dashboard:
+
+* **Catalog** (shared reference data, not owned by a project): Compounds, Samplings. Grouped under a "Catalog" dropdown in the header nav and a "Catalog" tile section on the dashboard.
+* **Workspace** (owned/scoped, day-to-day lab work): Projects, Experiments, Samples. Shown as top-level nav links and a "Workspace" tile section on the dashboard.
+
+`Samplings` and `Experiments` currently exist as routed placeholder pages (`/samplings`, `/experiments`) pending their own schema; `Samples` is the first of the three fully implemented end-to-end (migration, model, Livewire CRUD).

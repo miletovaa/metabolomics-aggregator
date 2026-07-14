@@ -111,4 +111,40 @@ class ActivityLogger
             ['project_id' => $project->id, 'compound_count' => $count],
         );
     }
+
+    private static function sampleName(Model $sample): string
+    {
+        return $sample->lab_sample_id ?: ($sample->external_id ?: "#{$sample->id}");
+    }
+
+    public static function createSample(Model $sample): ActivityLog
+    {
+        $name = static::sampleName($sample);
+        return static::log('create_sample', "Logged sample \"{$name}\".", $sample, $name);
+    }
+
+    public static function editSample(Model $sample, array $changes = []): ActivityLog
+    {
+        $name   = static::sampleName($sample);
+        $detail = "Edited sample \"{$name}\".";
+        if ($changes) {
+            $parts = [];
+            foreach ($changes as $field => $value) {
+                $parts[] = "{$field} → {$value}";
+            }
+            $detail .= ' Changes: ' . implode('; ', $parts) . '.';
+        }
+        return static::log('edit_sample', $detail, $sample, $name, $changes);
+    }
+
+    public static function deleteSample(string $sampleName, ?int $sampleId = null): ActivityLog
+    {
+        return static::log(
+            'delete_sample',
+            "Deleted sample \"{$sampleName}\".",
+            null,
+            $sampleName,
+            $sampleId ? ['sample_id' => $sampleId] : [],
+        );
+    }
 }
