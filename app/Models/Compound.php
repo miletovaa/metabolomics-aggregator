@@ -38,6 +38,7 @@ class Compound extends Model
         'hmdb_id',
         'chebi_id',
         'description',
+        'lipid_class',
     ];
 
     public function projects(): BelongsToMany

@@ -1,0 +1,91 @@
+<div class="max-w-6xl mx-auto px-4 py-8 space-y-6">
+
+    @if($successMessage)
+        <div
+            x-data="{ visible: true }"
+            x-init="setTimeout(() => { visible = false; $wire.dismissNotification() }, 3500)"
+            x-show="visible"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium bg-green-50 text-green-800 border border-green-200"
+        >
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ $successMessage }}
+            <button wire:click="dismissNotification" class="ml-1 opacity-60 hover:opacity-100">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    @endif
+
+    <div class="flex items-start justify-between">
+        <div>
+            <a href="{{ route('experiments.index') }}" wire:navigate class="text-sm text-gray-500 hover:underline">← Back to experiments</a>
+            <h1 class="text-2xl font-semibold mt-1">{{ $experiment->name }}</h1>
+            <div class="flex items-center gap-3 mt-1 text-sm text-gray-500">
+                <span>{{ $experiment->statusLabel() }}</span>
+                @if($experiment->project)
+                    <span>· Project: {{ $experiment->project->name }}</span>
+                @endif
+                <span>· {{ $samples->count() }} sample(s)</span>
+            </div>
+            @if($experiment->description)
+                <p class="text-sm text-gray-600 mt-2 max-w-2xl">{{ $experiment->description }}</p>
+            @endif
+        </div>
+        <a href="{{ route('experiment-records.create', $experiment) }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap">
+            + Add Record
+        </a>
+    </div>
+
+    @forelse(\App\Models\ExperimentRecord::FAMILY_LABELS as $family => $familyLabel)
+        @php($familyRecords = $recordsByFamily->get($family, collect()))
+        <div class="bg-white shadow rounded-2xl overflow-hidden">
+            <div class="px-6 py-3 bg-gray-50 border-b">
+                <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">{{ $familyLabel }}</h2>
+            </div>
+
+            @if($familyRecords->isEmpty())
+                <div class="px-6 py-6 text-sm text-gray-400">No {{ strtolower($familyLabel) }} records yet.</div>
+            @else
+                <table class="w-full text-sm">
+                    <thead class="text-left text-gray-500 border-b">
+                        <tr>
+                            <th class="p-3 font-medium">Type</th>
+                            <th class="p-3 font-medium">Sample</th>
+                            <th class="p-3 font-medium">Performed by</th>
+                            <th class="p-3 font-medium">Date</th>
+                            <th class="p-3 font-medium">Linked to</th>
+                            <th class="p-3 w-20"></th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        @foreach($familyRecords as $record)
+                            <tr wire:key="record-{{ $record->id }}" class="hover:bg-gray-50">
+                                <td class="p-3 text-gray-900 font-medium">
+                                    <a href="{{ route('experiment-records.edit', [$experiment, $record]) }}" wire:navigate class="hover:underline">
+                                        {{ $record->recordTypeLabel() }}
+                                    </a>
+                                </td>
+                                <td class="p-3 text-gray-600">{{ $record->sample?->lab_sample_id ?: $record->sample?->external_id ?: '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $record->performedBy?->name ?? '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $record->performed_at?->format('Y-m-d') ?? '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $record->parentRecord?->recordTypeLabel() ?? '—' }}</td>
+                                <td class="p-3 text-right">
+                                    <button
+                                        wire:click="deleteRecord({{ $record->id }})"
+                                        wire:confirm="Delete this record?"
+                                        class="text-gray-400 hover:text-red-600"
+                                        title="Delete record"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                    </button>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        </div>
+    @endforeach
+</div>

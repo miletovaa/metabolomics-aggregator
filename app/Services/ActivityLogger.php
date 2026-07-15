@@ -147,4 +147,77 @@ class ActivityLogger
             $sampleId ? ['sample_id' => $sampleId] : [],
         );
     }
+
+    private static function samplingName(Model $sampling): string
+    {
+        $sample = $sampling->sample;
+        return $sample?->lab_sample_id ?: ($sample?->external_id ?: "#{$sampling->id}");
+    }
+
+    public static function createSampling(Model $sampling): ActivityLog
+    {
+        $name = static::samplingName($sampling);
+        return static::log('create_sampling', "Logged sampling for \"{$name}\".", $sampling, $name);
+    }
+
+    public static function editSampling(Model $sampling): ActivityLog
+    {
+        $name = static::samplingName($sampling);
+        return static::log('edit_sampling', "Edited sampling for \"{$name}\".", $sampling, $name);
+    }
+
+    public static function deleteSampling(string $sampleName, ?int $samplingId = null): ActivityLog
+    {
+        return static::log(
+            'delete_sampling',
+            "Deleted sampling for \"{$sampleName}\".",
+            null,
+            $sampleName,
+            $samplingId ? ['sampling_id' => $samplingId] : [],
+        );
+    }
+
+    public static function createExperiment(Model $experiment): ActivityLog
+    {
+        return static::log('create_experiment', "Created experiment \"{$experiment->name}\".", $experiment, $experiment->name);
+    }
+
+    public static function editExperiment(Model $experiment): ActivityLog
+    {
+        return static::log('edit_experiment', "Edited experiment \"{$experiment->name}\".", $experiment, $experiment->name);
+    }
+
+    public static function deleteExperiment(string $experimentName, ?int $experimentId = null): ActivityLog
+    {
+        return static::log(
+            'delete_experiment',
+            "Deleted experiment \"{$experimentName}\".",
+            null,
+            $experimentName,
+            $experimentId ? ['experiment_id' => $experimentId] : [],
+        );
+    }
+
+    public static function createExperimentRecord(Model $record): ActivityLog
+    {
+        $label = $record->recordTypeLabel();
+        return static::log(
+            'create_experiment_record',
+            "Added \"{$label}\" record to experiment \"{$record->experiment?->name}\".",
+            $record,
+            $label,
+            ['experiment_id' => $record->experiment_id],
+        );
+    }
+
+    public static function deleteExperimentRecord(string $recordLabel, Model $experiment): ActivityLog
+    {
+        return static::log(
+            'delete_experiment_record',
+            "Deleted \"{$recordLabel}\" record from experiment \"{$experiment->name}\".",
+            null,
+            $recordLabel,
+            ['experiment_id' => $experiment->id],
+        );
+    }
 }

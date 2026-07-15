@@ -138,7 +138,7 @@
                             </td>
 
                             <td class="p-3 text-gray-500">
-                                {{ $project->created_at->format('M d, Y') }}
+                                {{ $project->created_at->format('Y-m-d') }}
                             </td>
 
                             {{-- Delete — @click.stop prevents row navigation --}}

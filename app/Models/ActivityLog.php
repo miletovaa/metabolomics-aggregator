@@ -47,6 +47,14 @@ class ActivityLog extends Model
             'create_sample'    => 'Logged sample',
             'edit_sample'      => 'Edited sample',
             'delete_sample'    => 'Deleted sample',
+            'create_sampling'  => 'Logged sampling',
+            'edit_sampling'    => 'Edited sampling',
+            'delete_sampling'  => 'Deleted sampling',
+            'create_experiment' => 'Created experiment',
+            'edit_experiment'   => 'Edited experiment',
+            'delete_experiment' => 'Deleted experiment',
+            'create_experiment_record' => 'Added experiment record',
+            'delete_experiment_record' => 'Deleted experiment record',
             default            => ucfirst(str_replace('_', ' ', $this->event_type)),
         };
     }
@@ -54,11 +62,11 @@ class ActivityLog extends Model
     public function eventColor(): string
     {
         return match ($this->event_type) {
-            'create_project', 'create_compound', 'create_sample' => 'green',
-            'edit_project',   'edit_compound',   'edit_sample'   => 'blue',
-            'delete_project', 'delete_compound', 'delete_sample' => 'red',
-            'dump_compounds'                                     => 'purple',
-            default                                               => 'gray',
+            'create_project', 'create_compound', 'create_sample', 'create_sampling', 'create_experiment', 'create_experiment_record' => 'green',
+            'edit_project',   'edit_compound',   'edit_sample',   'edit_sampling',   'edit_experiment'                               => 'blue',
+            'delete_project', 'delete_compound', 'delete_sample', 'delete_sampling', 'delete_experiment', 'delete_experiment_record' => 'red',
+            'dump_compounds'                                                                                                          => 'purple',
+            default                                                                                                                    => 'gray',
         };
     }
 }

@@ -83,7 +83,7 @@
                         <tr wire:key="log-{{ $log->id }}" class="hover:bg-gray-50">
                             <td class="px-4 py-3 text-gray-500 whitespace-nowrap">
                                 <span title="{{ $log->created_at->format('Y-m-d H:i:s') }}">
-                                    {{ $log->created_at->format('M d, Y H:i') }}
+                                    {{ $log->created_at->format('Y-m-d H:i') }}
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-gray-700">

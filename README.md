@@ -661,11 +661,81 @@ All option lists live as constants on `App\Models\Sample` (`GROUPS`, `SUBGROUPS`
 
 Pages: `/samples` (list, search, delete), `/samples/create`, `/samples/{sample}/edit` — the project field is a searchable combobox that lets you pick an existing project or create one on the fly by name (`Project::firstOrCreate`).
 
+### Samplings:
+
+Collection-event details for a sample: when, where, how, and by whom it was physically collected. One-to-one with `Samples` (`sample_id` is unique) — this is *not* a shared reference/technique catalog, it's per-event workspace data, so it lives under the Workspace nav group alongside Projects/Experiments/Samples, not under Catalog.
+
+    id
+    sample_id foreign_id unique (samples)
+    date_of_sampling date nullable
+    country_of_sampling string nullable
+    place_of_sampling string nullable
+    gerk string nullable — Slovenian agricultural land-parcel code, where applicable
+    gps_lat decimal(10,6) nullable
+    gps_lon decimal(10,6) nullable
+    altitude decimal(8,2) nullable
+    sampling_method string(50) nullable — see Sampling::SAMPLING_METHODS
+    packaging string(50) nullable — see Sampling::PACKAGING_OPTIONS
+    collector string nullable — free text; not necessarily a system user
+    timestamps
+
+Pages: `/samplings`, `/samplings/create` (pick any sample that doesn't already have a sampling record), `/samplings/{sampling}/edit`.
+
+### Compounds (extended):
+
+    lipid_class string(50) nullable — SFA | MUFA | MUFA-trans | PUFA | PUFA-trans | PUFA (ω-3) | PUFA (ω-6), fatty acids only
+
+The 38-fatty-acid panel used by the MK GC-MS / MK GC-IRMS result tables is seeded into the existing `compounds` catalog (matched/deduplicated by CAS number) rather than a parallel lookup table — `database/seeders/FattyAcidCompoundSeeder.php`. Each fatty acid's lab code (e.g. `C18:1 cis-9`) and common name (e.g. `Oleic acid`) are added as `compound_synonyms` alongside whatever canonical/IUPAC name the compound already had from PubChem/HMDB sync.
+
+### Experiments:
+
+The umbrella entity for a conducted experiment; the actual prep/analysis/result data lives in `experiment_records`, not on this table.
+
+    id
+    project_id foreign_id nullable (projects)
+    name string
+    description text nullable
+    status string(50) default 'planned' — planned | in_progress | completed
+    started_at date nullable
+    completed_at date nullable
+    created_by foreign_id nullable (users)
+    timestamps
+
+### Experiment_records:
+
+A single table holding every sample-preparation step, analysis run, and result row for an experiment, discriminated by `record_type`. This was a deliberate simplification over an earlier draft that split these into separate `SamplePreparation`/`AnalysisRun`/`Result` tables — one table with a type column and a self-referencing `parent_record_id` keeps the lineage (prep → analysis → result) as a simple self-join instead of a three-way join, and each repeating group (e.g. the isotope panel: δ18O, δ2H, δ13C, δ15N, δ34S, plus δ13C's per-fraction variants) becomes multiple rows of the same `record_type` instead of a wide, mostly-null table.
+
+    id
+    experiment_id foreign_id (experiments)
+    sample_id foreign_id (samples)
+    parent_record_id foreign_id nullable (experiment_records) — links a result to the analysis run that produced it, or an analysis to the prep batch it consumed
+    record_type string(50) — see below
+    performed_by foreign_id nullable (users) — generic "done by / analysed by"
+    performed_at date nullable — generic "date of X"
+    note text nullable
+    details json nullable — shape depends on record_type, see ExperimentRecord::fieldSchema()
+    timestamps
+
+`record_type` values, grouped into three families (`ExperimentRecord::FAMILIES`):
+
+* **Preparation**: `sample_prep`, `sample_prep_microwave_digestion`
+* **Analysis**: `analysis_isotopes`, `analysis_elemental_composition`, `analysis_mk_gc_ms`, `analysis_voc_gc_ms`, `analysis_mk_gc_irms`, `analysis_voc_gc_irms`
+* **Result**: `result_stable_isotopes`, `result_elemental_composition`, `result_mk_gc_ms`, `result_mk_gc_irms`, `result_voc_gc_ms`, `result_voc_gc_irms`
+
+Notes on the less obvious fields:
+
+* `analysis_isotopes` / `result_stable_isotopes` both key off the same `analyte` vocabulary (`ExperimentRecord::ANALYTES`: δ18Owater, δ18O, δ2H, δ13C, δ13Cfat, δ13Cdefatted, δ13Cpulp, δ13Ckazein, δ13Cprotein, δ13Csugar, δ13Cethanol, δ15N, δ34S) — one `experiment_records` row per analyte, not one wide row with 13 value/stdev column pairs.
+* `analysis_mk_gc_ms`/`analysis_mk_gc_irms` use liquid-injection fields (`mps_syringe`, `inj_volume_ul`, `rinse_settings`); `analysis_voc_gc_ms`/`analysis_voc_gc_irms` use SPME/headspace fields (`type_of_fiber`, `spme_parameters_min`, `fiber_bakeout_min`) — MK vs. VOC is the injection-method split, not a separate dimension.
+* `result_mk_gc_ms`/`result_mk_gc_irms` reference `compound_id` via a fixed dropdown of the seeded fatty-acid `Compound` rows (`ExperimentRecord::fieldSchema()` type `fatty_acid_select`). `result_voc_gc_ms`/`result_voc_gc_irms` reference `compound_id` via a live-search combobox over the *entire* compound catalog, with the ability to create a new `Compound` on the fly (type `compound_combobox`) — VOC identification is open-ended, unlike the fixed MK fatty-acid panel.
+* `result_elemental_composition`'s shape (`element`, `value`, `stdev`, `unit`) is provisional — no source header was given for this one, unlike the other five result types, so it's a best-guess placeholder (C/H/N/O/S) pending confirmation.
+
+Pages: `/experiments` (list, delete), `/experiments/create`, `/experiments/{experiment}` (show — records grouped by family, with an "Add Record" action), `/experiments/{experiment}/records/create`, `/experiments/{experiment}/records/{record}/edit`. The add/edit record form is driven entirely by `ExperimentRecord::fieldSchema($recordType)` — a declarative field list (key, label, input type, options) — so the 12+ record types share one generic renderer instead of one hand-written form per type.
+
 ## Entity architecture: Workspace vs. Catalog
 
-As the schema grows beyond Projects/Compounds, entities split into two kinds, reflected in navigation and the dashboard:
+Entities split into two kinds, reflected in navigation and the dashboard:
 
-* **Catalog** (shared reference data, not owned by a project): Compounds, Samplings. Grouped under a "Catalog" dropdown in the header nav and a "Catalog" tile section on the dashboard.
-* **Workspace** (owned/scoped, day-to-day lab work): Projects, Experiments, Samples. Shown as top-level nav links and a "Workspace" tile section on the dashboard.
+* **Catalog** (shared reference data, not owned by a project): Compounds.
+* **Workspace** (owned/scoped, day-to-day lab work): Projects, Experiments, Samples, Samplings.
 
-`Samplings` and `Experiments` currently exist as routed placeholder pages (`/samplings`, `/experiments`) pending their own schema; `Samples` is the first of the three fully implemented end-to-end (migration, model, Livewire CRUD).
+Samplings was originally planned as a Catalog entity (a shared "sampling technique" reference), but once its actual fields turned out to be collection-event-specific (GPS, date, collector), it was moved to Workspace and modeled as `Sampling belongsTo Sample` (1:1) rather than the other way around. With Samplings gone, Catalog is down to a single entity, so the header nav's "Catalog" dropdown was flattened into a plain top-level "Compounds" link.

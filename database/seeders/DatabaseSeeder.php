@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             SourceSeeder::class,
             CompoundSeeder::class,
             ProjectSeeder::class,
+            FattyAcidCompoundSeeder::class,
         ]);
     }
 }

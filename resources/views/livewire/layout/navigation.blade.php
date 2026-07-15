@@ -39,32 +39,12 @@ new class extends Component
                     <x-nav-link :href="route('samples.index')" :active="request()->routeIs('samples.index')" wire:navigate>
                         {{ __('Samples') }}
                     </x-nav-link>
-
-                    <div class="inline-flex items-center">
-                        <x-dropdown align="left" width="48">
-                            <x-slot name="trigger">
-                                <button type="button"
-                                    class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out focus:outline-none
-                                        {{ request()->routeIs('compounds.index') || request()->routeIs('samplings.index')
-                                            ? 'border-indigo-400 text-gray-900'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                    {{ __('Catalog') }}
-                                    <svg class="ms-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                                    </svg>
-                                </button>
-                            </x-slot>
-
-                            <x-slot name="content">
-                                <x-dropdown-link :href="route('compounds.index')" wire:navigate>
-                                    {{ __('Compounds') }}
-                                </x-dropdown-link>
-                                <x-dropdown-link :href="route('samplings.index')" wire:navigate>
-                                    {{ __('Samplings') }}
-                                </x-dropdown-link>
-                            </x-slot>
-                        </x-dropdown>
-                    </div>
+                    <x-nav-link :href="route('samplings.index')" :active="request()->routeIs('samplings.index')" wire:navigate>
+                        {{ __('Samplings') }}
+                    </x-nav-link>
+                    <x-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
+                        {{ __('Compounds') }}
+                    </x-nav-link>
 
                     <x-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate title="{{ __('History') }}">
                         <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -132,16 +112,12 @@ new class extends Component
             <x-responsive-nav-link :href="route('samples.index')" :active="request()->routeIs('samples.index')" wire:navigate>
                 {{ __('Samples') }}
             </x-responsive-nav-link>
-
-            <div class="pt-2 pb-1 border-t border-gray-200">
-                <div class="px-4 py-1 text-xs font-semibold uppercase tracking-wider text-gray-400">{{ __('Catalog') }}</div>
-                <x-responsive-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
-                    {{ __('Compounds') }}
-                </x-responsive-nav-link>
-                <x-responsive-nav-link :href="route('samplings.index')" :active="request()->routeIs('samplings.index')" wire:navigate>
-                    {{ __('Samplings') }}
-                </x-responsive-nav-link>
-            </div>
+            <x-responsive-nav-link :href="route('samplings.index')" :active="request()->routeIs('samplings.index')" wire:navigate>
+                {{ __('Samplings') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
+                {{ __('Compounds') }}
+            </x-responsive-nav-link>
 
             <x-responsive-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate>
                 {{ __('History') }}

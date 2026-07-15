@@ -1,17 +1,89 @@
 <div class="max-w-7xl mx-auto px-4 py-6">
+
+    @if($successMessage)
+        <div
+            x-data="{ visible: true }"
+            x-init="setTimeout(() => { visible = false; $wire.dismissNotification() }, 3500)"
+            x-show="visible"
+            x-transition:leave="transition ease-in duration-300"
+            x-transition:leave-start="opacity-100"
+            x-transition:leave-end="opacity-0"
+            class="fixed top-4 right-4 z-50 flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg text-sm font-medium bg-green-50 text-green-800 border border-green-200"
+        >
+            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ $successMessage }}
+            <button wire:click="dismissNotification" class="ml-1 opacity-60 hover:opacity-100">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+    @endif
+
     <div class="flex justify-between items-end mb-6">
         <div>
             <h1 class="text-2xl font-semibold">Experiments</h1>
             <p class="text-sm text-gray-500 mt-1">Conducted experiments, linked to projects and samples.</p>
         </div>
+        <a href="{{ route('experiments.create') }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm">
+            + Create Experiment
+        </a>
     </div>
 
-    <x-empty-state title="No experiments yet" cta="Add Experiment"
-        description="Once an experiment is logged here, it can be linked to the project it belongs to and the samples it was run on.">
-        <x-slot name="icon">
-            <svg class="w-7 h-7" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5.5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5.5 14.5m14.3.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5.5 14.5" />
-            </svg>
-        </x-slot>
-    </x-empty-state>
+    <div class="mb-4">
+        <input
+            wire:model.live.debounce.300ms="search"
+            type="text"
+            placeholder="Search by name…"
+            class="w-full md:w-80 border px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring focus:ring-blue-200"
+        >
+    </div>
+
+    <div class="bg-white rounded-xl shadow overflow-x-auto">
+        <table class="w-full text-sm">
+            <thead class="bg-gray-50 border-b">
+                <tr class="text-left text-gray-700">
+                    <th class="p-3">Name</th>
+                    <th class="p-3">Project</th>
+                    <th class="p-3">Status</th>
+                    <th class="p-3">Records</th>
+                    <th class="p-3">Started</th>
+                    <th class="p-3 w-16"></th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+                @forelse($experiments as $experiment)
+                    <tr wire:key="experiment-{{ $experiment->id }}" class="hover:bg-gray-50">
+                        <td class="p-3 font-medium text-gray-900">
+                            <a href="{{ route('experiments.show', $experiment) }}" wire:navigate class="hover:underline">
+                                {{ $experiment->name }}
+                            </a>
+                        </td>
+                        <td class="p-3 text-gray-600">{{ $experiment->project?->name ?? '—' }}</td>
+                        <td class="p-3 text-gray-600">{{ $experiment->statusLabel() }}</td>
+                        <td class="p-3 text-gray-600">{{ $experiment->records_count }}</td>
+                        <td class="p-3 text-gray-600">{{ $experiment->started_at?->format('Y-m-d') ?? '—' }}</td>
+                        <td class="p-3 text-right">
+                            <button
+                                wire:click="deleteExperiment({{ $experiment->id }})"
+                                wire:confirm="Delete this experiment and all its records? This cannot be undone."
+                                class="text-gray-400 hover:text-red-600"
+                                title="Delete experiment"
+                            >
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                            </button>
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="6" class="p-8 text-center text-gray-400">
+                            No experiments yet.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+
+    <div class="mt-4">
+        {{ $experiments->links() }}
+    </div>
 </div>

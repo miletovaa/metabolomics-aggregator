@@ -36,6 +36,11 @@ class Project extends Model
         return $this->hasMany(Sample::class);
     }
 
+    public function experiments(): HasMany
+    {
+        return $this->hasMany(Experiment::class);
+    }
+
     public function compounds(): BelongsToMany
     {
         return $this->belongsToMany(Compound::class, 'project_compounds')

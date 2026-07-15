@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Sample extends Model
 {
@@ -234,6 +235,11 @@ class Sample extends Model
     public function responsibleAnalyst(): BelongsTo
     {
         return $this->belongsTo(User::class, 'responsible_analyst_id');
+    }
+
+    public function sampling(): HasOne
+    {
+        return $this->hasOne(Sampling::class);
     }
 
     public function subgroupOptions(): array

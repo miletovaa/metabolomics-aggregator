@@ -3,13 +3,19 @@
 use App\Livewire\ActivityLog\Index as ActivityLogIndex;
 use App\Livewire\Compounds\Index as CompoundsIndex;
 use App\Livewire\Dashboard\Index as DashboardIndex;
+use App\Livewire\ExperimentRecords\Create as ExperimentRecordsCreate;
+use App\Livewire\ExperimentRecords\Edit as ExperimentRecordsEdit;
+use App\Livewire\Experiments\Create as ExperimentsCreate;
 use App\Livewire\Experiments\Index as ExperimentsIndex;
+use App\Livewire\Experiments\Show as ExperimentsShow;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Create as ProjectsCreate;
 use App\Livewire\Projects\Show as ProjectsShow;
 use App\Livewire\Samples\Create as SamplesCreate;
 use App\Livewire\Samples\Edit as SamplesEdit;
 use App\Livewire\Samples\Index as SamplesIndex;
+use App\Livewire\Samplings\Create as SamplingsCreate;
+use App\Livewire\Samplings\Edit as SamplingsEdit;
 use App\Livewire\Samplings\Index as SamplingsIndex;
 use Illuminate\Support\Facades\Route;
 
@@ -23,13 +29,20 @@ Route::view('profile', 'profile')
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/compounds', CompoundsIndex::class)->name('compounds.index');
+
     Route::get('/samplings', SamplingsIndex::class)->name('samplings.index');
+    Route::get('/samplings/create', SamplingsCreate::class)->name('samplings.create');
+    Route::get('/samplings/{sampling}/edit', SamplingsEdit::class)->name('samplings.edit');
 
     Route::get('/projects', ProjectsIndex::class)->name('projects.index');
     Route::get('/projects/create', ProjectsCreate::class)->name('projects.create');
     Route::get('/projects/{project}', ProjectsShow::class)->name('projects.show');
 
     Route::get('/experiments', ExperimentsIndex::class)->name('experiments.index');
+    Route::get('/experiments/create', ExperimentsCreate::class)->name('experiments.create');
+    Route::get('/experiments/{experiment}', ExperimentsShow::class)->name('experiments.show');
+    Route::get('/experiments/{experiment}/records/create', ExperimentRecordsCreate::class)->name('experiment-records.create');
+    Route::get('/experiments/{experiment}/records/{record}/edit', ExperimentRecordsEdit::class)->name('experiment-records.edit');
 
     Route::get('/samples', SamplesIndex::class)->name('samples.index');
     Route::get('/samples/create', SamplesCreate::class)->name('samples.create');
