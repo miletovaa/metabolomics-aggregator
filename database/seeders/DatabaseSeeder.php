@@ -13,6 +13,8 @@ class DatabaseSeeder extends Seeder
             CompoundSeeder::class,
             ProjectSeeder::class,
             FattyAcidCompoundSeeder::class,
+            SampleSeeder::class,
+            ExperimentSeeder::class,
         ]);
     }
 }
