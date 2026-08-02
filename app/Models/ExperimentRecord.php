@@ -18,6 +18,7 @@ class ExperimentRecord extends Model
         'record_type',
         'performed_by',
         'performed_at',
+        'instrument',
         'note',
         'details',
     ];
@@ -26,6 +27,11 @@ class ExperimentRecord extends Model
         'performed_at' => 'date',
         'details' => 'array',
     ];
+
+    // For result_* records, `instrument` should be copied from the paired
+    // analysis_* record's details.instrument at write time — result rows
+    // don't carry their own instrument field in fieldSchema(), and this
+    // avoids a parent_record_id traversal on every read.
 
     public const RECORD_TYPES = [
         'sample_prep' => 'Sample preparation',

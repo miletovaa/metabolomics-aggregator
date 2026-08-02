@@ -3,6 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreProjectCompoundRequest;
+use App\Http\Requests\UpdateProjectCompoundRequest;
+use App\Http\Resources\ProjectCompoundResource;
+use App\Models\Project;
+use App\Models\ProjectCompound;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class ProjectCompoundController extends Controller
