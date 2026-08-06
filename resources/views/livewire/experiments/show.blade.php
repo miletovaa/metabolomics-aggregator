@@ -65,7 +65,12 @@
                     <tbody class="divide-y divide-gray-100">
                         @foreach($familyGroups as $group)
                             @foreach($group as $record)
-                                <tr wire:key="record-{{ $record->id }}" class="hover:bg-gray-50">
+                                @php($recordShowUrl = route('experiment-records.show', [$experiment, $record]))
+                                <tr
+                                    wire:key="record-{{ $record->id }}"
+                                    x-on:click="Livewire.navigate('{{ $recordShowUrl }}')"
+                                    class="hover:bg-gray-50 cursor-pointer"
+                                >
                                     @if($loop->first)
                                         <td class="p-3 text-gray-900 font-medium align-top" rowspan="{{ $group->count() }}">
                                             {{ $record->recordTypeLabel() }}
@@ -76,13 +81,14 @@
                                         <td class="p-3 text-gray-600 align-top" rowspan="{{ $group->count() }}">{{ $record->parentRecord?->recordTypeLabel() ?? '—' }}</td>
                                     @endif
                                     <td class="p-3 text-gray-600">
-                                        <a href="{{ route('experiment-records.show', [$experiment, $record]) }}" wire:navigate class="hover:underline">
+                                        <a href="{{ $recordShowUrl }}" wire:navigate class="hover:underline">
                                             {{ $record->subjectLabel() ?? 'View details →' }}
                                         </a>
                                     </td>
                                     <td class="p-3 text-gray-600">{{ $record->valueLabel() ?? '—' }}</td>
                                     <td class="p-3 text-right">
                                         <button
+                                            x-on:click.stop
                                             wire:click="deleteRecord({{ $record->id }})"
                                             wire:confirm="Delete this record?"
                                             class="text-gray-400 hover:text-red-600"
