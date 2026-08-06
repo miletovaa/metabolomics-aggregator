@@ -20,6 +20,12 @@
             @endforeach
         </select>
         @error('recordType') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+
+        @if(in_array($recordType, \App\Models\ExperimentRecord::COMPOUND_RESULT_TYPES, true))
+            <p class="text-xs text-gray-500 mt-2">
+                You'll be taken to the project's compound list to add or import the measured compounds for this run.
+            </p>
+        @endif
     </div>
 
     @if($recordType)
@@ -34,7 +40,11 @@
                 wire:target="save"
                 class="bg-black text-white px-5 py-2 rounded-lg hover:opacity-90 disabled:opacity-50"
             >
-                <span wire:loading.remove wire:target="save">Save Record</span>
+                @if(in_array($recordType, \App\Models\ExperimentRecord::COMPOUND_RESULT_TYPES, true))
+                    <span wire:loading.remove wire:target="save">Continue →</span>
+                @else
+                    <span wire:loading.remove wire:target="save">Save Record</span>
+                @endif
                 <span wire:loading wire:target="save">Saving…</span>
             </button>
         </div>

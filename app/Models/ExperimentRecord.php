@@ -70,6 +70,18 @@ class ExperimentRecord extends Model
         'result' => 'Results',
     ];
 
+    // These result types are no longer stored as ExperimentRecord rows — they live as
+    // ProjectCompound rows tagged with the analysis run (see ProjectCompound::runGroupKey()),
+    // since a run can identify many compounds and that's exactly what the project-compounds
+    // page (mapping, mz/rt, import/export) already manages. Kept in RECORD_TYPES/FAMILIES
+    // above purely for labeling on the Experiment show page's merged "Results" section.
+    public const COMPOUND_RESULT_TYPES = [
+        'result_mk_gc_ms',
+        'result_mk_gc_irms',
+        'result_voc_gc_ms',
+        'result_voc_gc_irms',
+    ];
+
     /** Shared isotope/fraction vocabulary used by analysis_isotopes and result_stable_isotopes. */
     public const ANALYTES = [
         'd18o_water' => 'δ18Owater',
@@ -145,6 +157,14 @@ class ExperimentRecord extends Model
         'percent' => '%',
         'mg_100g' => 'mg/100 g',
         'mg_g_fat' => 'mg/g fat',
+    ];
+
+    // The details.* key holding "what was measured" for record types that can share
+    // a sample/date/analyst grouping while differing only on this subject.
+    public const SUBJECT_FIELDS = [
+        'analysis_isotopes' => 'analyte',
+        'result_stable_isotopes' => 'analyte',
+        'result_elemental_composition' => 'element',
     ];
 
     /**
@@ -248,28 +268,10 @@ class ExperimentRecord extends Model
                 ['key' => 'stdev', 'label' => 'Stdev', 'type' => 'number'],
                 ['key' => 'unit', 'label' => 'Unit', 'type' => 'text', 'default' => '%'],
             ],
-            'result_mk_gc_ms' => [
-                ['key' => 'compound_id', 'label' => 'Fatty acid', 'type' => 'fatty_acid_select'],
-                ['key' => 'unit', 'label' => 'Unit', 'type' => 'select', 'options' => self::MK_GC_MS_UNITS],
-                ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
-            ],
-            'result_mk_gc_irms' => [
-                ['key' => 'compound_id', 'label' => 'Fatty acid', 'type' => 'fatty_acid_select'],
-                ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
-                ['key' => 'stdev', 'label' => 'Stdev', 'type' => 'number'],
-                ['key' => 'unit', 'label' => 'Unit', 'type' => 'text', 'default' => '‰'],
-            ],
-            'result_voc_gc_ms' => [
-                ['key' => 'compound_id', 'label' => 'Compound', 'type' => 'compound_combobox'],
-                ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
-                ['key' => 'unit', 'label' => 'Unit', 'type' => 'text'],
-            ],
-            'result_voc_gc_irms' => [
-                ['key' => 'compound_id', 'label' => 'Compound', 'type' => 'compound_combobox'],
-                ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
-                ['key' => 'stdev', 'label' => 'Stdev', 'type' => 'number'],
-                ['key' => 'unit', 'label' => 'Unit', 'type' => 'text', 'default' => '‰'],
-            ],
+            // result_mk_gc_ms / result_mk_gc_irms / result_voc_gc_ms / result_voc_gc_irms intentionally
+            // fall through to default: they're no longer created as ExperimentRecord rows (see
+            // ExperimentRecord::COMPOUND_RESULT_TYPES) — the compound/value/unit/stdev they used to
+            // hold here now lives on ProjectCompound rows tagged with the analysis run.
             default => [],
         };
     }
@@ -287,6 +289,57 @@ class ExperimentRecord extends Model
     public function recordTypeLabel(): string
     {
         return self::RECORD_TYPES[$this->record_type] ?? $this->record_type;
+    }
+
+    /** Composite key: records sharing this key are the same analysis applied to the same
+     * sample, on the same date, by the same analyst — differing only by subject/analyte. */
+    public function groupKey(): string
+    {
+        return implode('|', [
+            $this->sample_id,
+            $this->record_type,
+            $this->performed_at?->toDateString(),
+            $this->performed_by,
+        ]);
+    }
+
+    public function subjectLabel(): ?string
+    {
+        $field = self::SUBJECT_FIELDS[$this->record_type] ?? null;
+        $value = $field ? ($this->details[$field] ?? null) : null;
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        return match ($field) {
+            'analyte' => self::ANALYTES[$value] ?? $value,
+            'element' => self::ELEMENTS[$value] ?? $value,
+            'compound_id' => Compound::find($value)?->canonical_name,
+            default => null,
+        };
+    }
+
+    public function valueLabel(): ?string
+    {
+        $value = $this->details['value'] ?? null;
+
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $label = (string) $value;
+
+        if (($stdev = $this->details['stdev'] ?? null) !== null && $stdev !== '') {
+            $label .= ' ± ' . $stdev;
+        }
+
+        if ($unit = $this->details['unit'] ?? null) {
+            $unit = self::MK_GC_MS_UNITS[$unit] ?? $unit;
+            $label .= ' ' . $unit;
+        }
+
+        return $label;
     }
 
     public function experiment(): BelongsTo

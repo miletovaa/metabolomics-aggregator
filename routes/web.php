@@ -5,8 +5,10 @@ use App\Livewire\Compounds\Index as CompoundsIndex;
 use App\Livewire\Dashboard\Index as DashboardIndex;
 use App\Livewire\ExperimentRecords\Create as ExperimentRecordsCreate;
 use App\Livewire\ExperimentRecords\Edit as ExperimentRecordsEdit;
+use App\Livewire\ExperimentRecords\Show as ExperimentRecordsShow;
 use App\Livewire\Experiments\Create as ExperimentsCreate;
 use App\Livewire\Experiments\Index as ExperimentsIndex;
+use App\Livewire\Experiments\Results as ExperimentsResults;
 use App\Livewire\Experiments\Show as ExperimentsShow;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Create as ProjectsCreate;
@@ -41,7 +43,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/experiments', ExperimentsIndex::class)->name('experiments.index');
     Route::get('/experiments/create', ExperimentsCreate::class)->name('experiments.create');
     Route::get('/experiments/{experiment}', ExperimentsShow::class)->name('experiments.show');
+    Route::get('/experiments/{experiment}/results', ExperimentsResults::class)->name('experiments.results');
     Route::get('/experiments/{experiment}/records/create', ExperimentRecordsCreate::class)->name('experiment-records.create');
+    Route::get('/experiments/{experiment}/records/{record}', ExperimentRecordsShow::class)->name('experiment-records.show');
     Route::get('/experiments/{experiment}/records/{record}/edit', ExperimentRecordsEdit::class)->name('experiment-records.edit');
 
     Route::get('/samples', SamplesIndex::class)->name('samples.index');

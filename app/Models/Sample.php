@@ -26,6 +26,7 @@ class Sample extends Model
         'planned_analysis',
         'sample_type',
         'type_details',
+        'note',
     ];
 
     protected $casts = [
@@ -40,7 +41,12 @@ class Sample extends Model
         'food' => 'Food',
         'environment' => 'Environment',
         'human_medical' => 'Human/Medical',
+        'plant' => 'Plant',
+        'animal' => 'Animal',
     ];
+
+    // Groups that carry a dedicated sample type details block (identification → type details → storage).
+    public const TYPE_DETAIL_GROUPS = ['plant', 'animal', 'environment'];
 
     public const SUBGROUPS = [
         'food' => [
@@ -128,12 +134,6 @@ class Sample extends Model
         'mk_gc_irms' => 'MK GC-IRMS',
         'voc_gc_ms' => 'VOC GC-MS',
         'voc_gc_irms' => 'VOC GC-IRMS',
-    ];
-
-    public const SAMPLE_TYPES = [
-        'plant' => 'Plant',
-        'animal' => 'Animal',
-        'environmental' => 'Environmental',
     ];
 
     public const STATUS_OPTIONS = [
@@ -255,11 +255,6 @@ class Sample extends Model
     public function subgroupLabel(): ?string
     {
         return $this->subgroupOptions()[$this->sample_subgroup] ?? $this->sample_subgroup;
-    }
-
-    public function sampleTypeLabel(): ?string
-    {
-        return self::SAMPLE_TYPES[$this->sample_type] ?? $this->sample_type;
     }
 
     public function storageConditionLabel(): ?string

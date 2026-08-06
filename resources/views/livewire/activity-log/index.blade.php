@@ -20,8 +20,8 @@
                 <select wire:model.live="filterEvent"
                         class="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-black">
                     <option value="">All events</option>
-                    @foreach(\App\Livewire\ActivityLog\Index::EVENT_TYPES as $type)
-                        <option value="{{ $type }}">{{ ucfirst(str_replace('_', ' ', $type)) }}</option>
+                    @foreach(\App\Models\ActivityLog::EVENTS as $type => $meta)
+                        <option value="{{ $type }}">{{ $meta['label'] }}</option>
                     @endforeach
                 </select>
             </div>

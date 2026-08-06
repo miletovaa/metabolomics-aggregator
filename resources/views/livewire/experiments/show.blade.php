@@ -39,13 +39,14 @@
     </div>
 
     @forelse(\App\Models\ExperimentRecord::FAMILY_LABELS as $family => $familyLabel)
-        @php($familyRecords = $recordsByFamily->get($family, collect()))
+        @php($familyGroups = $recordGroupsByFamily->get($family, collect()))
+        @php($familyCompoundGroups = $family === 'result' ? $compoundResultGroups : collect())
         <div class="bg-white shadow rounded-2xl overflow-hidden">
             <div class="px-6 py-3 bg-gray-50 border-b">
                 <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">{{ $familyLabel }}</h2>
             </div>
 
-            @if($familyRecords->isEmpty())
+            @if($familyGroups->isEmpty() && $familyCompoundGroups->isEmpty())
                 <div class="px-6 py-6 text-sm text-gray-400">No {{ strtolower($familyLabel) }} records yet.</div>
             @else
                 <table class="w-full text-sm">
@@ -56,31 +57,70 @@
                             <th class="p-3 font-medium">Performed by</th>
                             <th class="p-3 font-medium">Date</th>
                             <th class="p-3 font-medium">Linked to</th>
+                            <th class="p-3 font-medium">Subject</th>
+                            <th class="p-3 font-medium">Value</th>
                             <th class="p-3 w-20"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        @foreach($familyRecords as $record)
-                            <tr wire:key="record-{{ $record->id }}" class="hover:bg-gray-50">
+                        @foreach($familyGroups as $group)
+                            @foreach($group as $record)
+                                <tr wire:key="record-{{ $record->id }}" class="hover:bg-gray-50">
+                                    @if($loop->first)
+                                        <td class="p-3 text-gray-900 font-medium align-top" rowspan="{{ $group->count() }}">
+                                            {{ $record->recordTypeLabel() }}
+                                        </td>
+                                        <td class="p-3 text-gray-600 align-top" rowspan="{{ $group->count() }}">{{ $record->sample?->lab_sample_id ?: $record->sample?->external_id ?: '—' }}</td>
+                                        <td class="p-3 text-gray-600 align-top" rowspan="{{ $group->count() }}">{{ $record->performedBy?->name ?? '—' }}</td>
+                                        <td class="p-3 text-gray-600 align-top" rowspan="{{ $group->count() }}">{{ $record->performed_at?->format('Y-m-d') ?? '—' }}</td>
+                                        <td class="p-3 text-gray-600 align-top" rowspan="{{ $group->count() }}">{{ $record->parentRecord?->recordTypeLabel() ?? '—' }}</td>
+                                    @endif
+                                    <td class="p-3 text-gray-600">
+                                        <a href="{{ route('experiment-records.show', [$experiment, $record]) }}" wire:navigate class="hover:underline">
+                                            {{ $record->subjectLabel() ?? 'View details →' }}
+                                        </a>
+                                    </td>
+                                    <td class="p-3 text-gray-600">{{ $record->valueLabel() ?? '—' }}</td>
+                                    <td class="p-3 text-right">
+                                        <button
+                                            wire:click="deleteRecord({{ $record->id }})"
+                                            wire:confirm="Delete this record?"
+                                            class="text-gray-400 hover:text-red-600"
+                                            title="Delete record"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                                        </button>
+                                    </td>
+                                </tr>
+                            @endforeach
+                        @endforeach
+                        @foreach($familyCompoundGroups as $group)
+                            @php($runUrl = route('experiments.results', [
+                                'experiment' => $experiment->id,
+                                'sampleId' => $group->sample_id,
+                                'recordType' => $group->record_type,
+                                'performedBy' => $group->performed_by,
+                                'performedAt' => $group->performed_at?->format('Y-m-d'),
+                                'parentRecordId' => $group->parentRecord?->id,
+                            ]))
+                            <tr
+                                wire:key="compound-group-{{ $loop->index }}"
+                                x-on:click="Livewire.navigate('{{ $runUrl }}')"
+                                class="hover:bg-blue-50 cursor-pointer"
+                            >
                                 <td class="p-3 text-gray-900 font-medium">
-                                    <a href="{{ route('experiment-records.edit', [$experiment, $record]) }}" wire:navigate class="hover:underline">
-                                        {{ $record->recordTypeLabel() }}
+                                    {{ \App\Models\ExperimentRecord::RECORD_TYPES[$group->record_type] ?? $group->record_type }}
+                                </td>
+                                <td class="p-3 text-gray-600">{{ $group->sample?->lab_sample_id ?: $group->sample?->external_id ?: '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $group->performedBy?->name ?? '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $group->performed_at?->format('Y-m-d') ?? '—' }}</td>
+                                <td class="p-3 text-gray-600">{{ $group->parentRecord?->recordTypeLabel() ?? '—' }}</td>
+                                <td class="p-3 text-gray-600" colspan="2">
+                                    <a href="{{ $runUrl }}" wire:navigate class="text-blue-600 hover:underline">
+                                        View {{ $group->compound_count }} result{{ $group->compound_count === 1 ? '' : 's' }} →
                                     </a>
                                 </td>
-                                <td class="p-3 text-gray-600">{{ $record->sample?->lab_sample_id ?: $record->sample?->external_id ?: '—' }}</td>
-                                <td class="p-3 text-gray-600">{{ $record->performedBy?->name ?? '—' }}</td>
-                                <td class="p-3 text-gray-600">{{ $record->performed_at?->format('Y-m-d') ?? '—' }}</td>
-                                <td class="p-3 text-gray-600">{{ $record->parentRecord?->recordTypeLabel() ?? '—' }}</td>
-                                <td class="p-3 text-right">
-                                    <button
-                                        wire:click="deleteRecord({{ $record->id }})"
-                                        wire:confirm="Delete this record?"
-                                        class="text-gray-400 hover:text-red-600"
-                                        title="Delete record"
-                                    >
-                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                    </button>
-                                </td>
+                                <td class="p-3"></td>
                             </tr>
                         @endforeach
                     </tbody>

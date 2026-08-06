@@ -4,6 +4,7 @@ namespace App\Jobs;
 
 use App\Models\Compound;
 use App\Models\ProjectMappingJob;
+use App\Services\ActivityLogger;
 use App\Services\CompoundMappingService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -28,7 +29,11 @@ class BatchMapProjectCompounds implements ShouldQueue
         $mappingJob->update(['status' => 'running', 'started_at' => now()]);
 
         $project = $mappingJob->project;
-        $rows    = $project->projectCompounds()->whereNull('compound_id')->get();
+        $tags    = $mappingJob->runScopeTags();
+        $rows    = $project->projectCompounds()
+            ->whereNull('compound_id')
+            ->when($tags, fn ($q) => $q->forRun($tags))
+            ->get();
         $total   = $rows->count();
 
         if ($total === 0) {
@@ -84,19 +89,22 @@ class BatchMapProjectCompounds implements ShouldQueue
             }
         }
 
-        $this->detectDuplicates($project);
+        $this->detectDuplicates($project, $tags);
+
+        $counts = [
+            'total'       => $total,
+            'local_found' => $localFound,
+            'pubchem_new' => $pubchemNew,
+            'not_found'   => $notFound,
+        ];
 
         $mappingJob->update([
             'status'       => 'done',
             'completed_at' => now(),
-            'log'          => [
-                'ran_at'      => now()->format('Y-m-d H:i:s'),
-                'total'       => $total,
-                'local_found' => $localFound,
-                'pubchem_new' => $pubchemNew,
-                'not_found'   => $notFound,
-            ],
+            'log'          => array_merge(['ran_at' => now()->format('Y-m-d H:i:s')], $counts),
         ]);
+
+        ActivityLogger::mapCompoundsBatch($project, $counts, $mappingJob->user_id);
     }
 
     public function failed(\Throwable $e): void
@@ -135,9 +143,11 @@ class BatchMapProjectCompounds implements ShouldQueue
         return null;
     }
 
-    private function detectDuplicates(\App\Models\Project $project): void
+    private function detectDuplicates(\App\Models\Project $project, ?array $tags): void
     {
-        $duplicateCids = $project->projectCompounds()
+        $base = fn () => $project->projectCompounds()->when($tags, fn ($q) => $q->forRun($tags));
+
+        $duplicateCids = $base()
             ->whereNotNull('compound_id')
             ->select('compound_id')
             ->groupBy('compound_id')
@@ -145,12 +155,12 @@ class BatchMapProjectCompounds implements ShouldQueue
             ->pluck('compound_id');
 
         if ($duplicateCids->isEmpty()) {
-            $project->projectCompounds()->where('is_duplicate', true)->update(['is_duplicate' => false]);
+            $base()->where('is_duplicate', true)->update(['is_duplicate' => false]);
             return;
         }
 
-        $project->projectCompounds()->whereIn('compound_id', $duplicateCids)->update(['is_duplicate' => true]);
-        $project->projectCompounds()
+        $base()->whereIn('compound_id', $duplicateCids)->update(['is_duplicate' => true]);
+        $base()
             ->where(fn($q) => $q->whereNull('compound_id')->orWhereNotIn('compound_id', $duplicateCids))
             ->update(['is_duplicate' => false]);
     }

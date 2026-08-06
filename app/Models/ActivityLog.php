@@ -34,39 +34,43 @@ class ActivityLog extends Model
         return null;
     }
 
+    // Single source of truth for every event type ActivityLogger can emit — the Activity Log
+    // page's filter dropdown and this model's label/color both read from here, so a new event
+    // type can't silently go unlabeled or unfilterable again.
+    public const EVENTS = [
+        'create_project'   => ['label' => 'Created project', 'color' => 'green'],
+        'edit_project'     => ['label' => 'Edited project', 'color' => 'blue'],
+        'delete_project'   => ['label' => 'Deleted project', 'color' => 'red'],
+        'create_compound'  => ['label' => 'Added compound', 'color' => 'green'],
+        'edit_compound'    => ['label' => 'Edited compound', 'color' => 'blue'],
+        'delete_compound'  => ['label' => 'Deleted compound', 'color' => 'red'],
+        'dump_compounds'   => ['label' => 'Exported compounds', 'color' => 'purple'],
+        'map_compounds_batch' => ['label' => 'Batch-mapped compounds', 'color' => 'purple'],
+        'create_sample'    => ['label' => 'Logged sample', 'color' => 'green'],
+        'edit_sample'      => ['label' => 'Edited sample', 'color' => 'blue'],
+        'delete_sample'    => ['label' => 'Deleted sample', 'color' => 'red'],
+        'create_sampling'  => ['label' => 'Logged sampling', 'color' => 'green'],
+        'edit_sampling'    => ['label' => 'Edited sampling', 'color' => 'blue'],
+        'delete_sampling'  => ['label' => 'Deleted sampling', 'color' => 'red'],
+        'create_experiment' => ['label' => 'Created experiment', 'color' => 'green'],
+        'delete_experiment' => ['label' => 'Deleted experiment', 'color' => 'red'],
+        'create_experiment_record' => ['label' => 'Added experiment record', 'color' => 'green'],
+        'edit_experiment_record'   => ['label' => 'Edited experiment record', 'color' => 'blue'],
+        'delete_experiment_record' => ['label' => 'Deleted experiment record', 'color' => 'red'],
+        'edit_global_compound' => ['label' => 'Edited compound', 'color' => 'blue'],
+        'create_user' => ['label' => 'Registered', 'color' => 'green'],
+        'edit_user'   => ['label' => 'Edited profile', 'color' => 'blue'],
+        'change_password' => ['label' => 'Changed password', 'color' => 'blue'],
+        'delete_user' => ['label' => 'Deleted account', 'color' => 'red'],
+    ];
+
     public function eventLabel(): string
     {
-        return match ($this->event_type) {
-            'create_project'   => 'Created project',
-            'edit_project'     => 'Edited project',
-            'delete_project'   => 'Deleted project',
-            'create_compound'  => 'Added compound',
-            'edit_compound'    => 'Edited compound',
-            'delete_compound'  => 'Deleted compound',
-            'dump_compounds'   => 'Exported compounds',
-            'create_sample'    => 'Logged sample',
-            'edit_sample'      => 'Edited sample',
-            'delete_sample'    => 'Deleted sample',
-            'create_sampling'  => 'Logged sampling',
-            'edit_sampling'    => 'Edited sampling',
-            'delete_sampling'  => 'Deleted sampling',
-            'create_experiment' => 'Created experiment',
-            'edit_experiment'   => 'Edited experiment',
-            'delete_experiment' => 'Deleted experiment',
-            'create_experiment_record' => 'Added experiment record',
-            'delete_experiment_record' => 'Deleted experiment record',
-            default            => ucfirst(str_replace('_', ' ', $this->event_type)),
-        };
+        return self::EVENTS[$this->event_type]['label'] ?? ucfirst(str_replace('_', ' ', $this->event_type));
     }
 
     public function eventColor(): string
     {
-        return match ($this->event_type) {
-            'create_project', 'create_compound', 'create_sample', 'create_sampling', 'create_experiment', 'create_experiment_record' => 'green',
-            'edit_project',   'edit_compound',   'edit_sample',   'edit_sampling',   'edit_experiment'                               => 'blue',
-            'delete_project', 'delete_compound', 'delete_sample', 'delete_sampling', 'delete_experiment', 'delete_experiment_record' => 'red',
-            'dump_compounds'                                                                                                          => 'purple',
-            default                                                                                                                    => 'gray',
-        };
+        return self::EVENTS[$this->event_type]['color'] ?? 'gray';
     }
 }

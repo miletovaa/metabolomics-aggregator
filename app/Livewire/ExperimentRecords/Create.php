@@ -2,7 +2,6 @@
 
 namespace App\Livewire\ExperimentRecords;
 
-use App\Models\Compound;
 use App\Models\Experiment;
 use App\Models\ExperimentRecord;
 use App\Models\Sample;
@@ -23,9 +22,6 @@ class Create extends Component
     public string $note = '';
     public array $detailsData = [];
 
-    public string $compoundSearch = '';
-    public string $compoundSearchField = '';
-
     public function mount(Experiment $experiment): void
     {
         $this->experiment = $experiment;
@@ -36,43 +32,6 @@ class Create extends Component
         $this->detailsData = [];
     }
 
-    public function selectCompound(string $field, int $compoundId, string $label): void
-    {
-        $this->detailsData[$field] = $compoundId;
-        $this->compoundSearchField = '';
-        $this->compoundSearch = '';
-    }
-
-    public function createCompound(string $field): void
-    {
-        $name = trim($this->compoundSearch);
-        if ($name === '') {
-            return;
-        }
-
-        $compound = Compound::firstOrCreate(['canonical_name' => $name]);
-        $this->detailsData[$field] = $compound->id;
-        $this->compoundSearchField = '';
-        $this->compoundSearch = '';
-    }
-
-    public function getCompoundSearchResultsProperty()
-    {
-        if (trim($this->compoundSearch) === '') {
-            return collect();
-        }
-
-        return Compound::where('canonical_name', 'ilike', '%' . trim($this->compoundSearch) . '%')
-            ->orderBy('canonical_name')
-            ->limit(15)
-            ->get(['id', 'canonical_name']);
-    }
-
-    public function compoundLabel(?int $id): ?string
-    {
-        return $id ? Compound::find($id)?->canonical_name : null;
-    }
-
     public function save(): void
     {
         $this->validate([
@@ -81,6 +40,31 @@ class Create extends Component
             'parentRecordId' => ['nullable', 'exists:experiment_records,id'],
             'performedAt' => ['nullable', 'date'],
         ]);
+
+        // GC-MS/VOC-GC-MS/IRMS results are managed as ProjectCompound rows on the scoped
+        // project-compounds page (mapping/mz/rt/import-export), not as ExperimentRecord rows —
+        // see ExperimentRecord::COMPOUND_RESULT_TYPES.
+        if (in_array($this->recordType, ExperimentRecord::COMPOUND_RESULT_TYPES, true)) {
+            if (!$this->experiment->project_id) {
+                $this->addError(
+                    'recordType',
+                    'This experiment has no project assigned. Assign a project to the experiment before adding '
+                        . ExperimentRecord::RECORD_TYPES[$this->recordType] . ' results.',
+                );
+                return;
+            }
+
+            $this->redirect(route('experiments.results', [
+                'experiment' => $this->experiment->id,
+                'sampleId' => $this->sampleId,
+                'recordType' => $this->recordType,
+                'performedBy' => $this->performedBy,
+                'performedAt' => $this->performedAt ?: null,
+                'parentRecordId' => $this->parentRecordId,
+            ]), navigate: true);
+
+            return;
+        }
 
         $details = [];
         foreach (ExperimentRecord::fieldSchema($this->recordType) as $field) {
@@ -114,7 +98,6 @@ class Create extends Component
         return view('livewire.experiment-records.create', [
             'samples' => Sample::orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'fattyAcids' => Compound::whereNotNull('lipid_class')->orderBy('canonical_name')->get(['id', 'canonical_name']),
             'parentCandidates' => $this->experiment->records()
                 ->when($this->sampleId, fn ($q) => $q->where('sample_id', $this->sampleId))
                 ->get(),

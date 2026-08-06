@@ -52,11 +52,13 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($samplings as $sampling)
-                    <tr wire:key="sampling-{{ $sampling->id }}" class="hover:bg-gray-50">
+                    <tr
+                        wire:key="sampling-{{ $sampling->id }}"
+                        x-on:click="Livewire.navigate('{{ route('samplings.edit', $sampling) }}')"
+                        class="hover:bg-gray-50 cursor-pointer"
+                    >
                         <td class="p-3 font-medium text-gray-900">
-                            <a href="{{ route('samplings.edit', $sampling) }}" wire:navigate class="hover:underline">
-                                {{ $sampling->sample?->lab_sample_id ?: $sampling->sample?->external_id ?: "#{$sampling->sample_id}" }}
-                            </a>
+                            {{ $sampling->sample?->lab_sample_id ?: $sampling->sample?->external_id ?: "#{$sampling->sample_id}" }}
                         </td>
                         <td class="p-3 text-gray-600">{{ $sampling->date_of_sampling?->format('Y-m-d') ?? '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sampling->country_of_sampling ?: '—' }}</td>
@@ -65,6 +67,7 @@
                         <td class="p-3 text-gray-600">{{ $sampling->collector ?: '—' }}</td>
                         <td class="p-3 text-right">
                             <button
+                                x-on:click.stop
                                 wire:click="deleteSampling({{ $sampling->id }})"
                                 wire:confirm="Delete this sampling record? This cannot be undone."
                                 class="text-gray-400 hover:text-red-600"

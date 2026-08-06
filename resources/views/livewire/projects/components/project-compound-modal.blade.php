@@ -236,6 +236,21 @@
                     </div>
                 </section>
 
+                @if($pc->experiment_id)
+                    {{-- ── Analysis result ── --}}
+                    <section>
+                        <h3 class="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Analysis result</h3>
+                        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <x-compound-info-row label="Record type" :value="$pc->recordTypeLabel()" />
+                            <x-compound-info-row label="Performed at" :value="$pc->performed_at?->format('Y-m-d')" />
+                            <x-compound-info-row label="Value" :value="$pc->value !== null ? (string) $pc->value : null" />
+                            <x-compound-info-row label="Unit" :value="$pc->unit" />
+                            <x-compound-info-row label="Stdev" :value="$pc->stdev !== null ? (string) $pc->stdev : null" />
+                            <x-compound-info-row label="Linked to" :value="$pc->parentRecord?->recordTypeLabel()" />
+                        </div>
+                    </section>
+                @endif
+
                 @if($compound)
 
                     {{-- ── Core information ── --}}

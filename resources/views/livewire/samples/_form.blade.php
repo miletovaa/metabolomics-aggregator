@@ -35,7 +35,7 @@
         </div>
         <div>
             <label class="{{ $labelClass }}">Subgroup</label>
-            <select wire:model="subgroup" class="{{ $inputClass }}" @disabled(!$group)>
+            <select wire:model="subgroup" class="{{ $inputClass }}" @disabled(!$group || empty($subgroupOptions))>
                 <option value="">Select subgroup…</option>
                 @foreach($subgroupOptions as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
@@ -50,6 +50,215 @@
         </div>
     </div>
 </div>
+
+@if(in_array($group, \App\Models\Sample::TYPE_DETAIL_GROUPS, true))
+{{-- Sample type details --}}
+<div class="bg-white shadow rounded-2xl p-6 space-y-4">
+    <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Sample type details</h2>
+
+    @if($group === 'plant')
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="{{ $labelClass }}">Latin name of plant</label>
+                <input wire:model="typeDetails.latin_name" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Part of plant</label>
+                <select wire:model="typeDetails.part_of_plant" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PART_OF_PLANT as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Harvest year</label>
+                <input type="number" wire:model="typeDetails.harvest_year" class="{{ $inputClass }}" placeholder="e.g. 2025">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Status</label>
+                <select wire:model="typeDetails.status" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Producer</label>
+                <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PLANT_PRODUCER as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Production type</label>
+                <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Declared country of origin</label>
+                <input wire:model="typeDetails.declared_country_of_origin" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Country of origin of raw material</label>
+                <input wire:model="typeDetails.country_of_origin_of_raw_material" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Region of origin</label>
+                <input wire:model="typeDetails.region_of_origin" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Irrigation</label>
+                <select wire:model="typeDetails.irrigation" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    <option value="yes">Yes</option>
+                    <option value="no">No</option>
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Source of water</label>
+                <select wire:model="typeDetails.source_of_water" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Processing type</label>
+                <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PLANT_PROCESSING_TYPES as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <label class="{{ $labelClass }}">Note</label>
+                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
+            </div>
+        </div>
+    @elseif($group === 'animal')
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+                <label class="{{ $labelClass }}">Common name of animal</label>
+                <input wire:model="typeDetails.common_name" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Latin name</label>
+                <input wire:model="typeDetails.latin_name" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Part of animal</label>
+                <select wire:model="typeDetails.part_of_animal" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PART_OF_ANIMAL as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Status</label>
+                <select wire:model="typeDetails.status" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Producer</label>
+                <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Production type</label>
+                <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Country of origin</label>
+                <input wire:model="typeDetails.country_of_origin" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Region of origin</label>
+                <input wire:model="typeDetails.region_of_origin" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Source of drinking water</label>
+                <select wire:model="typeDetails.source_of_drinking_water" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Processing type</label>
+                <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
+                    <option value="">Select…</option>
+                    @foreach(\App\Models\Sample::ANIMAL_PROCESSING_TYPES as $key => $label)
+                        <option value="{{ $key }}">{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="md:col-span-3">
+                <label class="{{ $labelClass }}">Feed</label>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
+                    @foreach(\App\Models\Sample::ANIMAL_FEED_TYPES as $key => $label)
+                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" wire:model="typeDetails.feed" value="{{ $key }}" class="rounded border-gray-300">
+                            {{ $label }}
+                        </label>
+                    @endforeach
+                </div>
+            </div>
+            <div class="md:col-span-3">
+                <label class="{{ $labelClass }}">Note</label>
+                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
+            </div>
+        </div>
+    @elseif($group === 'environment')
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+                <label class="{{ $labelClass }}">Depth</label>
+                <input wire:model="typeDetails.depth" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Temperature at sampling</label>
+                <input wire:model="typeDetails.temperature_at_sampling" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">pH</label>
+                <input wire:model="typeDetails.ph" class="{{ $inputClass }}">
+            </div>
+            <div>
+                <label class="{{ $labelClass }}">Conductivity</label>
+                <input wire:model="typeDetails.conductivity" class="{{ $inputClass }}">
+            </div>
+            <div class="md:col-span-4">
+                <label class="{{ $labelClass }}">Note</label>
+                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
+            </div>
+        </div>
+    @endif
+</div>
+@endif
 
 {{-- Storage --}}
 <div class="bg-white shadow rounded-2xl p-6 space-y-4">
@@ -184,219 +393,8 @@
     </div>
 </div>
 
-{{-- Sample type --}}
+{{-- Notes --}}
 <div class="bg-white shadow rounded-2xl p-6 space-y-4">
-    <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Sample type details</h2>
-
-    <div class="md:w-1/3">
-        <label class="{{ $labelClass }}">Sample type</label>
-        <select wire:model.live="sampleType" class="{{ $inputClass }}">
-            <option value="">None / not specified</option>
-            @foreach(\App\Models\Sample::SAMPLE_TYPES as $key => $label)
-                <option value="{{ $key }}">{{ $label }}</option>
-            @endforeach
-        </select>
-    </div>
-
-    @if($sampleType === 'plant')
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div>
-                <label class="{{ $labelClass }}">Latin name of plant</label>
-                <input wire:model="typeDetails.latin_name" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Part of plant</label>
-                <select wire:model="typeDetails.part_of_plant" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PART_OF_PLANT as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Harvest year</label>
-                <input type="number" wire:model="typeDetails.harvest_year" class="{{ $inputClass }}" placeholder="e.g. 2025">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Status</label>
-                <select wire:model="typeDetails.status" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Producer</label>
-                <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PLANT_PRODUCER as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Production type</label>
-                <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Declared country of origin</label>
-                <input wire:model="typeDetails.declared_country_of_origin" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Country of origin of raw material</label>
-                <input wire:model="typeDetails.country_of_origin_of_raw_material" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Region of origin</label>
-                <input wire:model="typeDetails.region_of_origin" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Irrigation</label>
-                <select wire:model="typeDetails.irrigation" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    <option value="yes">Yes</option>
-                    <option value="no">No</option>
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Source of water</label>
-                <select wire:model="typeDetails.source_of_water" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Processing type</label>
-                <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PLANT_PROCESSING_TYPES as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="md:col-span-3">
-                <label class="{{ $labelClass }}">Note</label>
-                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
-            </div>
-        </div>
-    @elseif($sampleType === 'animal')
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-            <div>
-                <label class="{{ $labelClass }}">Common name of animal</label>
-                <input wire:model="typeDetails.common_name" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Latin name</label>
-                <input wire:model="typeDetails.latin_name" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Part of animal</label>
-                <select wire:model="typeDetails.part_of_animal" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PART_OF_ANIMAL as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Status</label>
-                <select wire:model="typeDetails.status" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Producer</label>
-                <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Production type</label>
-                <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Country of origin</label>
-                <input wire:model="typeDetails.country_of_origin" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Region of origin</label>
-                <input wire:model="typeDetails.region_of_origin" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Source of drinking water</label>
-                <select wire:model="typeDetails.source_of_drinking_water" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Processing type</label>
-                <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
-                    <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::ANIMAL_PROCESSING_TYPES as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="md:col-span-3">
-                <label class="{{ $labelClass }}">Feed</label>
-                <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-                    @foreach(\App\Models\Sample::ANIMAL_FEED_TYPES as $key => $label)
-                        <label class="inline-flex items-center gap-2 text-sm text-gray-700">
-                            <input type="checkbox" wire:model="typeDetails.feed" value="{{ $key }}" class="rounded border-gray-300">
-                            {{ $label }}
-                        </label>
-                    @endforeach
-                </div>
-            </div>
-            <div class="md:col-span-3">
-                <label class="{{ $labelClass }}">Note</label>
-                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
-            </div>
-        </div>
-    @elseif($sampleType === 'environmental')
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 pt-2">
-            <div>
-                <label class="{{ $labelClass }}">Depth</label>
-                <input wire:model="typeDetails.depth" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Temperature at sampling</label>
-                <input wire:model="typeDetails.temperature_at_sampling" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">pH</label>
-                <input wire:model="typeDetails.ph" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Conductivity</label>
-                <input wire:model="typeDetails.conductivity" class="{{ $inputClass }}">
-            </div>
-            <div class="md:col-span-4">
-                <label class="{{ $labelClass }}">Note</label>
-                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
-            </div>
-        </div>
-    @endif
+    <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Notes</h2>
+    <textarea wire:model="note" rows="3" class="{{ $inputClass }}" placeholder="Additional notes about this sample…"></textarea>
 </div>

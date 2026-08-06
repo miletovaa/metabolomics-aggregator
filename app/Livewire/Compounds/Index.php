@@ -5,6 +5,7 @@ namespace App\Livewire\Compounds;
 use App\Jobs\SyncCompoundsJob;
 use App\Models\Compound;
 use App\Models\Taxonomy;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -203,9 +204,13 @@ class Index extends Component
     public function updateDescription(int $id, string $value): void
     {
         $value = trim($value);
-        Compound::findOrFail($id)->update([
-            'description' => $value === '' ? null : $value,
-        ]);
+        $compound = Compound::findOrFail($id);
+        $old = $compound->description;
+        $new = $value === '' ? null : $value;
+        $compound->update(['description' => $new]);
+        if ($old !== $new) {
+            ActivityLogger::editGlobalCompound($compound, ['description' => ($old ?: '—') . ' → ' . ($new ?: '—')]);
+        }
     }
 
     public function render()

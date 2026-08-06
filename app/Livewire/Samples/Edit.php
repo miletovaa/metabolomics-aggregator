@@ -27,8 +27,8 @@ class Edit extends Component
     public string $selectedProjectName = '';
     public array $purposeOfAnalysis = [];
     public array $plannedAnalysis = [];
-    public string $sampleType = '';
     public array $typeDetails = [];
+    public string $note = '';
 
     public function mount(Sample $sample): void
     {
@@ -47,17 +47,13 @@ class Edit extends Component
         $this->selectedProjectName = $sample->project?->name ?? '';
         $this->purposeOfAnalysis = $sample->purpose_of_analysis ?? [];
         $this->plannedAnalysis = $sample->planned_analysis ?? [];
-        $this->sampleType = (string) $sample->sample_type;
         $this->typeDetails = $sample->type_details ?? [];
+        $this->note = (string) $sample->note;
     }
 
     public function updatedGroup(): void
     {
         $this->subgroup = '';
-    }
-
-    public function updatedSampleType(): void
-    {
         $this->typeDetails = [];
     }
 
@@ -67,12 +63,9 @@ class Edit extends Component
 
         $project = $this->resolveProject();
 
-        $changes = [];
-        if ($this->sample->project_id !== $project?->id) {
-            $changes['project'] = ($this->sample->project?->name ?? '—') . ' → ' . ($project?->name ?? '—');
-        }
+        $oldProjectName = $this->sample->project?->name ?? '—';
 
-        $this->sample->update([
+        $this->sample->fill([
             'lab_sample_id' => $this->labSampleId ?: null,
             'external_id' => $this->externalId ?: null,
             'matrix_group' => $this->matrixGroup ?: null,
@@ -85,15 +78,29 @@ class Edit extends Component
             'project_id' => $project?->id,
             'purpose_of_analysis' => $this->purposeOfAnalysis ?: null,
             'planned_analysis' => $this->plannedAnalysis ?: null,
-            'sample_type' => $this->sampleType ?: null,
-            'type_details' => $this->sampleType ? (array_filter($this->typeDetails, fn ($v) => $v !== '' && $v !== null && $v !== []) ?: null) : null,
+            'sample_type' => $this->hasTypeDetails() ? $this->group : null,
+            'type_details' => $this->hasTypeDetails() ? (array_filter($this->typeDetails, fn ($v) => $v !== '' && $v !== null && $v !== []) ?: null) : null,
+            'note' => $this->note ?: null,
         ]);
+
+        $changes = ActivityLogger::diff($this->sample);
+        if ($this->sample->isDirty('project_id')) {
+            $changes['project'] = $oldProjectName . ' → ' . ($project?->name ?? '—');
+            unset($changes['project_id']);
+        }
+
+        $this->sample->save();
 
         ActivityLogger::editSample($this->sample, $changes);
 
         session()->flash('success', 'Sample updated.');
 
         $this->redirect(route('samples.index'), navigate: true);
+    }
+
+    protected function hasTypeDetails(): bool
+    {
+        return in_array($this->group, Sample::TYPE_DETAIL_GROUPS, true);
     }
 
     protected function resolveProject(): ?Project
@@ -125,7 +132,6 @@ class Edit extends Component
             'storageCondition' => ['nullable', 'in:' . implode(',', array_keys(Sample::STORAGE_CONDITIONS))],
             'responsibleAnalystId' => ['nullable', 'exists:users,id'],
             'projectId' => ['nullable', 'exists:projects,id'],
-            'sampleType' => ['nullable', 'in:' . implode(',', array_keys(Sample::SAMPLE_TYPES))],
         ];
     }
 

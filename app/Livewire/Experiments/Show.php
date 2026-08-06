@@ -4,6 +4,7 @@ namespace App\Livewire\Experiments;
 
 use App\Models\Experiment;
 use App\Models\ExperimentRecord;
+use App\Models\ProjectCompound;
 use App\Services\ActivityLogger;
 use Livewire\Component;
 
@@ -36,15 +37,42 @@ class Show extends Component
 
     public function render()
     {
-        $records = $this->experiment->records()
+        $recordGroupsByFamily = $this->experiment->records()
+            ->whereNotIn('record_type', ExperimentRecord::COMPOUND_RESULT_TYPES)
             ->with(['sample', 'performedBy', 'parentRecord'])
             ->orderBy('record_type')
             ->orderByDesc('id')
             ->get()
-            ->groupBy(fn (ExperimentRecord $record) => ExperimentRecord::familyOf($record->record_type));
+            ->groupBy(fn (ExperimentRecord $record) => ExperimentRecord::familyOf($record->record_type))
+            ->map(fn ($familyRecords) => $familyRecords
+                ->groupBy(fn (ExperimentRecord $record) => $record->groupKey())
+                ->values()
+            );
+
+        $compoundResultGroups = ProjectCompound::where('experiment_id', $this->experiment->id)
+            ->whereIn('record_type', ExperimentRecord::COMPOUND_RESULT_TYPES)
+            ->with(['sample', 'performedBy', 'parentRecord'])
+            ->get()
+            ->groupBy(fn (ProjectCompound $pc) => $pc->runGroupKey())
+            ->map(function ($rows) {
+                $first = $rows->first();
+
+                return (object) [
+                    'record_type' => $first->record_type,
+                    'sample' => $first->sample,
+                    'performedBy' => $first->performedBy,
+                    'performed_at' => $first->performed_at,
+                    'parentRecord' => $first->parentRecord,
+                    'compound_count' => $rows->count(),
+                    'sample_id' => $first->sample_id,
+                    'performed_by' => $first->performed_by,
+                ];
+            })
+            ->values();
 
         return view('livewire.experiments.show', [
-            'recordsByFamily' => $records,
+            'recordGroupsByFamily' => $recordGroupsByFamily,
+            'compoundResultGroups' => $compoundResultGroups,
             'samples' => $this->experiment->samples(),
         ])->layout('layouts.app');
     }

@@ -6,6 +6,7 @@ use App\Models\Compound;
 use App\Models\Experiment;
 use App\Models\ExperimentRecord;
 use App\Models\Project;
+use App\Models\ProjectCompound;
 use App\Models\Sample;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -231,21 +232,32 @@ class ExperimentSeeder extends Seeder
             ['57-11-4', '11.6'],  // Stearic acid
         ];
 
-        foreach ($fattyAcidResults as [$cas, $value]) {
-            $compound = Compound::where('cas', $cas)->first();
-            if (! $compound) {
-                continue;
-            }
+        // GC-MS fatty acid results live as ProjectCompound rows tagged to this run (see
+        // ExperimentRecord::COMPOUND_RESULT_TYPES) rather than ExperimentRecord rows — the
+        // compound is already resolved via CAS lookup, so it's created pre-mapped.
+        if ($project) {
+            foreach ($fattyAcidResults as [$cas, $value]) {
+                $compound = Compound::where('cas', $cas)->first();
+                if (! $compound) {
+                    continue;
+                }
 
-            ExperimentRecord::create([
-                'experiment_id' => $experiment->id,
-                'sample_id' => $sample->id,
-                'parent_record_id' => $gcMsAnalysis->id,
-                'record_type' => 'result_mk_gc_ms',
-                'performed_by' => $analyst?->id,
-                'performed_at' => '2026-04-26',
-                'details' => ['compound_id' => $compound->id, 'unit' => 'percent', 'value' => $value],
-            ]);
+                ProjectCompound::create([
+                    'project_id' => $project->id,
+                    'compound_id' => $compound->id,
+                    'input_name' => $compound->canonical_name,
+                    'custom_name' => $compound->canonical_name,
+                    'is_mapped' => true,
+                    'experiment_id' => $experiment->id,
+                    'sample_id' => $sample->id,
+                    'record_type' => 'result_mk_gc_ms',
+                    'performed_by' => $analyst?->id,
+                    'performed_at' => '2026-04-26',
+                    'parent_record_id' => $gcMsAnalysis->id,
+                    'unit' => 'percent',
+                    'value' => $value,
+                ]);
+            }
         }
     }
 }

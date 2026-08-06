@@ -14,16 +14,6 @@ class Index extends Component
     public int    $page          = 1;
     public int    $lastPage      = 1;
 
-    public const EVENT_TYPES = [
-        'create_project',
-        'edit_project',
-        'delete_project',
-        'create_compound',
-        'edit_compound',
-        'delete_compound',
-        'dump_compounds',
-    ];
-
     public function updated(string $property): void
     {
         if (in_array($property, ['filterEvent', 'filterUser', 'search', 'perPage'], true)) {

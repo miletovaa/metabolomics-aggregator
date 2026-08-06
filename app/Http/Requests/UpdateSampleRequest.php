@@ -36,6 +36,7 @@ class UpdateSampleRequest extends FormRequest
             'planned_analysis' => ['nullable', 'array'],
             'sample_type' => ['nullable', 'string', 'max:50'],
             'type_details' => ['nullable', 'array'],
+            'note' => ['nullable', 'string'],
         ];
     }
 }

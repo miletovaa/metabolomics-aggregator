@@ -48,7 +48,7 @@ class Edit extends Component
             'packaging' => ['nullable', 'in:' . implode(',', array_keys(Sampling::PACKAGING_OPTIONS))],
         ]);
 
-        $this->sampling->update([
+        $this->sampling->fill([
             'date_of_sampling' => $this->dateOfSampling ?: null,
             'country_of_sampling' => $this->countryOfSampling ?: null,
             'place_of_sampling' => $this->placeOfSampling ?: null,
@@ -61,7 +61,10 @@ class Edit extends Component
             'collector' => $this->collector ?: null,
         ]);
 
-        ActivityLogger::editSampling($this->sampling);
+        $changes = ActivityLogger::diff($this->sampling);
+        $this->sampling->save();
+
+        ActivityLogger::editSampling($this->sampling, $changes);
 
         session()->flash('success', 'Sampling updated.');
 

@@ -25,16 +25,12 @@ class Create extends Component
     public string $selectedProjectName = '';
     public array $purposeOfAnalysis = [];
     public array $plannedAnalysis = [];
-    public string $sampleType = '';
     public array $typeDetails = [];
+    public string $note = '';
 
     public function updatedGroup(): void
     {
         $this->subgroup = '';
-    }
-
-    public function updatedSampleType(): void
-    {
         $this->typeDetails = [];
     }
 
@@ -57,8 +53,9 @@ class Create extends Component
             'project_id' => $project?->id,
             'purpose_of_analysis' => $this->purposeOfAnalysis ?: null,
             'planned_analysis' => $this->plannedAnalysis ?: null,
-            'sample_type' => $this->sampleType ?: null,
-            'type_details' => $this->sampleType ? (array_filter($this->typeDetails, fn ($v) => $v !== '' && $v !== null && $v !== []) ?: null) : null,
+            'sample_type' => $this->hasTypeDetails() ? $this->group : null,
+            'type_details' => $this->hasTypeDetails() ? (array_filter($this->typeDetails, fn ($v) => $v !== '' && $v !== null && $v !== []) ?: null) : null,
+            'note' => $this->note ?: null,
         ]);
 
         ActivityLogger::createSample($sample);
@@ -66,6 +63,11 @@ class Create extends Component
         session()->flash('success', 'Sample logged.');
 
         $this->redirect(route('samples.index'), navigate: true);
+    }
+
+    protected function hasTypeDetails(): bool
+    {
+        return in_array($this->group, Sample::TYPE_DETAIL_GROUPS, true);
     }
 
     protected function resolveProject(): ?Project
@@ -97,7 +99,6 @@ class Create extends Component
             'storageCondition' => ['nullable', 'in:' . implode(',', array_keys(Sample::STORAGE_CONDITIONS))],
             'responsibleAnalystId' => ['nullable', 'exists:users,id'],
             'projectId' => ['nullable', 'exists:projects,id'],
-            'sampleType' => ['nullable', 'in:' . implode(',', array_keys(Sample::SAMPLE_TYPES))],
         ];
     }
 

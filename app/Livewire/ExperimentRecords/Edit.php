@@ -2,7 +2,6 @@
 
 namespace App\Livewire\ExperimentRecords;
 
-use App\Models\Compound;
 use App\Models\Experiment;
 use App\Models\ExperimentRecord;
 use App\Models\Sample;
@@ -23,11 +22,13 @@ class Edit extends Component
     public string $note = '';
     public array $detailsData = [];
 
-    public string $compoundSearch = '';
-
     public function mount(Experiment $experiment, ExperimentRecord $record): void
     {
         abort_unless($record->experiment_id === $experiment->id, 404);
+        // Compound-based results now live as ProjectCompound rows, managed on the scoped
+        // project-compounds page — there should be no ExperimentRecord rows of these types
+        // left to edit, but guard against a stale link just in case.
+        abort_if(in_array($record->record_type, ExperimentRecord::COMPOUND_RESULT_TYPES, true), 404);
 
         $this->experiment = $experiment;
         $this->record = $record;
@@ -39,41 +40,6 @@ class Edit extends Component
         $this->performedAt = $record->performed_at?->format('Y-m-d') ?? '';
         $this->note = (string) $record->note;
         $this->detailsData = $record->details ?? [];
-    }
-
-    public function selectCompound(string $field, int $compoundId, string $label): void
-    {
-        $this->detailsData[$field] = $compoundId;
-        $this->compoundSearch = '';
-    }
-
-    public function createCompound(string $field): void
-    {
-        $name = trim($this->compoundSearch);
-        if ($name === '') {
-            return;
-        }
-
-        $compound = Compound::firstOrCreate(['canonical_name' => $name]);
-        $this->detailsData[$field] = $compound->id;
-        $this->compoundSearch = '';
-    }
-
-    public function getCompoundSearchResultsProperty()
-    {
-        if (trim($this->compoundSearch) === '') {
-            return collect();
-        }
-
-        return Compound::where('canonical_name', 'ilike', '%' . trim($this->compoundSearch) . '%')
-            ->orderBy('canonical_name')
-            ->limit(15)
-            ->get(['id', 'canonical_name']);
-    }
-
-    public function compoundLabel(?int $id): ?string
-    {
-        return $id ? Compound::find($id)?->canonical_name : null;
     }
 
     public function save(): void
@@ -93,7 +59,7 @@ class Edit extends Component
             $details[$field['key']] = $value;
         }
 
-        $this->record->update([
+        $this->record->fill([
             'sample_id' => $this->sampleId,
             'parent_record_id' => $this->parentRecordId,
             'performed_by' => $this->performedBy,
@@ -101,6 +67,11 @@ class Edit extends Component
             'note' => $this->note ?: null,
             'details' => $details ?: null,
         ]);
+
+        $changes = ActivityLogger::diff($this->record);
+        $this->record->save();
+
+        ActivityLogger::editExperimentRecord($this->record, $changes);
 
         session()->flash('success', 'Record updated.');
 
@@ -112,7 +83,6 @@ class Edit extends Component
         return view('livewire.experiment-records.edit', [
             'samples' => Sample::orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'fattyAcids' => Compound::whereNotNull('lipid_class')->orderBy('canonical_name')->get(['id', 'canonical_name']),
             'parentCandidates' => $this->experiment->records()
                 ->where('id', '!=', $this->record->id)
                 ->when($this->sampleId, fn ($q) => $q->where('sample_id', $this->sampleId))

@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -38,7 +39,14 @@ new class extends Component
             $user->email_verified_at = null;
         }
 
+        $changes = ActivityLogger::diff($user);
+        unset($changes['email_verified_at']);
+
         $user->save();
+
+        if ($changes) {
+            ActivityLogger::editUser($user, $changes);
+        }
 
         $this->dispatch('profile-updated', name: $user->name);
     }

@@ -27,6 +27,35 @@ class ActivityLogger
         ]);
     }
 
+    /**
+     * Diff a model's currently-dirty attributes into human-readable "old → new" strings.
+     * Call after fill()ing new attributes but before save(), so getOriginal() still reflects
+     * the pre-update values.
+     */
+    public static function diff(Model $model): array
+    {
+        return collect($model->getDirty())
+            ->reject(fn ($new, $field) => in_array($field, ['updated_at'], true))
+            ->mapWithKeys(fn ($new, $field) => [
+                $field => (static::stringify($model->getOriginal($field)) ?: '—') . ' → ' . (static::stringify($new) ?: '—'),
+            ])
+            ->all();
+    }
+
+    private static function stringify(mixed $value): string
+    {
+        if ($value === null) {
+            return '';
+        }
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+        if (is_array($value)) {
+            return implode(', ', $value);
+        }
+        return (string) $value;
+    }
+
     // ── Convenience helpers ───────────────────────────────────────────────────
 
     public static function createProject(Model $project): ActivityLog
@@ -160,10 +189,18 @@ class ActivityLogger
         return static::log('create_sampling', "Logged sampling for \"{$name}\".", $sampling, $name);
     }
 
-    public static function editSampling(Model $sampling): ActivityLog
+    public static function editSampling(Model $sampling, array $changes = []): ActivityLog
     {
-        $name = static::samplingName($sampling);
-        return static::log('edit_sampling', "Edited sampling for \"{$name}\".", $sampling, $name);
+        $name   = static::samplingName($sampling);
+        $detail = "Edited sampling for \"{$name}\".";
+        if ($changes) {
+            $parts = [];
+            foreach ($changes as $field => $value) {
+                $parts[] = "{$field} → {$value}";
+            }
+            $detail .= ' Changes: ' . implode('; ', $parts) . '.';
+        }
+        return static::log('edit_sampling', $detail, $sampling, $name, $changes);
     }
 
     public static function deleteSampling(string $sampleName, ?int $samplingId = null): ActivityLog
@@ -180,11 +217,6 @@ class ActivityLogger
     public static function createExperiment(Model $experiment): ActivityLog
     {
         return static::log('create_experiment', "Created experiment \"{$experiment->name}\".", $experiment, $experiment->name);
-    }
-
-    public static function editExperiment(Model $experiment): ActivityLog
-    {
-        return static::log('edit_experiment', "Edited experiment \"{$experiment->name}\".", $experiment, $experiment->name);
     }
 
     public static function deleteExperiment(string $experimentName, ?int $experimentId = null): ActivityLog
@@ -218,6 +250,95 @@ class ActivityLogger
             null,
             $recordLabel,
             ['experiment_id' => $experiment->id],
+        );
+    }
+
+    public static function editExperimentRecord(Model $record, array $changes = []): ActivityLog
+    {
+        $label  = $record->recordTypeLabel();
+        $detail = "Edited \"{$label}\" record on experiment \"{$record->experiment?->name}\".";
+        if ($changes) {
+            $parts = [];
+            foreach ($changes as $field => $value) {
+                $parts[] = "{$field} → {$value}";
+            }
+            $detail .= ' Changes: ' . implode('; ', $parts) . '.';
+        }
+        return static::log(
+            'edit_experiment_record',
+            $detail,
+            $record,
+            $label,
+            array_merge(['experiment_id' => $record->experiment_id], $changes),
+        );
+    }
+
+    public static function editGlobalCompound(Model $compound, array $changes = []): ActivityLog
+    {
+        $name   = $compound->canonical_name ?? "#{$compound->id}";
+        $detail = "Edited compound \"{$name}\".";
+        if ($changes) {
+            $parts = [];
+            foreach ($changes as $field => $value) {
+                $parts[] = "{$field} → {$value}";
+            }
+            $detail .= ' Changes: ' . implode('; ', $parts) . '.';
+        }
+        return static::log('edit_global_compound', $detail, $compound, $name, $changes);
+    }
+
+    public static function mapCompoundsBatch(Model $project, array $counts, ?int $userId = null): ActivityLog
+    {
+        $total      = $counts['total'] ?? 0;
+        $localFound = $counts['local_found'] ?? 0;
+        $pubchemNew = $counts['pubchem_new'] ?? 0;
+        $notFound   = $counts['not_found'] ?? 0;
+
+        return static::log(
+            'map_compounds_batch',
+            "Batch-mapped {$total} compound(s) in project \"{$project->name}\": {$localFound} found locally, {$pubchemNew} newly resolved, {$notFound} not found.",
+            $project,
+            $project->name,
+            array_merge(['project_id' => $project->id], $counts),
+            $userId,
+        );
+    }
+
+    // ── User account ─────────────────────────────────────────────────────────
+
+    public static function createUser(Model $user): ActivityLog
+    {
+        return static::log('create_user', "Registered account \"{$user->name}\".", $user, $user->name, [], $user->id);
+    }
+
+    public static function editUser(Model $user, array $changes = []): ActivityLog
+    {
+        $detail = "Edited profile \"{$user->name}\".";
+        if ($changes) {
+            $parts = [];
+            foreach ($changes as $field => $value) {
+                $parts[] = "{$field} → {$value}";
+            }
+            $detail .= ' Changes: ' . implode('; ', $parts) . '.';
+        }
+        return static::log('edit_user', $detail, $user, $user->name, $changes);
+    }
+
+    public static function changePassword(Model $user): ActivityLog
+    {
+        // Never log the password value itself — event only, no diff.
+        return static::log('change_password', "Changed password for \"{$user->name}\".", $user, $user->name);
+    }
+
+    public static function deleteUser(string $userName, ?int $userId = null): ActivityLog
+    {
+        return static::log(
+            'delete_user',
+            "Deleted account \"{$userName}\".",
+            null,
+            $userName,
+            $userId ? ['user_id' => $userId] : [],
+            $userId,
         );
     }
 }

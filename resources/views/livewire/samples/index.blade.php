@@ -46,7 +46,6 @@
                     <th class="p-3">External ID</th>
                     <th class="p-3">Group</th>
                     <th class="p-3">Subgroup</th>
-                    <th class="p-3">Type</th>
                     <th class="p-3">Date received</th>
                     <th class="p-3">Project</th>
                     <th class="p-3">Analyst</th>
@@ -55,21 +54,23 @@
             </thead>
             <tbody class="divide-y divide-gray-100">
                 @forelse($samples as $sample)
-                    <tr wire:key="sample-{{ $sample->id }}" class="hover:bg-gray-50">
+                    <tr
+                        wire:key="sample-{{ $sample->id }}"
+                        x-on:click="Livewire.navigate('{{ route('samples.edit', $sample) }}')"
+                        class="hover:bg-gray-50 cursor-pointer"
+                    >
                         <td class="p-3 font-medium text-gray-900">
-                            <a href="{{ route('samples.edit', $sample) }}" wire:navigate class="hover:underline">
-                                {{ $sample->lab_sample_id ?: '—' }}
-                            </a>
+                            {{ $sample->lab_sample_id ?: '—' }}
                         </td>
                         <td class="p-3 text-gray-600">{{ $sample->external_id ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->groupLabel() ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->subgroupLabel() ?: '—' }}</td>
-                        <td class="p-3 text-gray-600">{{ $sample->sampleTypeLabel() ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->date_received?->format('Y-m-d') ?? '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->project?->name ?? '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->responsibleAnalyst?->name ?? '—' }}</td>
                         <td class="p-3 text-right">
                             <button
+                                x-on:click.stop
                                 wire:click="deleteSample({{ $sample->id }})"
                                 wire:confirm="Delete this sample? This cannot be undone."
                                 class="text-gray-400 hover:text-red-600"

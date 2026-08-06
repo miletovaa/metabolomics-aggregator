@@ -95,53 +95,6 @@
                             </select>
                             @break
 
-                        @case('fatty_acid_select')
-                            <select wire:model="detailsData.{{ $field['key'] }}" class="{{ $inputClass }}">
-                                <option value="">Select…</option>
-                                @foreach($fattyAcids as $fa)
-                                    <option value="{{ $fa->id }}">{{ $fa->canonical_name }}</option>
-                                @endforeach
-                            </select>
-                            @break
-
-                        @case('compound_combobox')
-                            <div x-data="{ open: false }" @click.outside="open = false" class="relative">
-                                <input
-                                    wire:model.live.debounce.300ms="compoundSearch"
-                                    @focus="open = true"
-                                    type="text"
-                                    class="{{ $inputClass }}"
-                                    placeholder="{{ $this->compoundLabel($detailsData[$field['key']] ?? null) ?? 'Search compound…' }}"
-                                    autocomplete="off"
-                                >
-                                <div x-show="open" x-cloak class="absolute z-20 mt-1 w-full bg-white rounded-lg shadow-lg border max-h-56 overflow-y-auto">
-                                    @forelse($this->compoundSearchResults as $result)
-                                        <div
-                                            wire:click="selectCompound('{{ $field['key'] }}', {{ $result->id }}, @js($result->canonical_name))"
-                                            @click="open = false"
-                                            class="px-3 py-2 text-sm hover:bg-gray-50 cursor-pointer"
-                                        >
-                                            {{ $result->canonical_name }}
-                                        </div>
-                                    @empty
-                                        <div class="px-3 py-2 text-sm text-gray-400">Type to search…</div>
-                                    @endforelse
-                                    @if(trim($compoundSearch) !== '')
-                                        <div
-                                            wire:click="createCompound('{{ $field['key'] }}')"
-                                            @click="open = false"
-                                            class="px-3 py-2 text-sm text-indigo-600 hover:bg-indigo-50 cursor-pointer border-t"
-                                        >
-                                            + Create compound "{{ $compoundSearch }}"
-                                        </div>
-                                    @endif
-                                </div>
-                            </div>
-                            @if(!empty($detailsData[$field['key']]))
-                                <p class="text-xs text-gray-500 mt-1">Selected: {{ $this->compoundLabel($detailsData[$field['key']]) }}</p>
-                            @endif
-                            @break
-
                         @default
                             <input wire:model="detailsData.{{ $field['key'] }}" class="{{ $inputClass }}">
                     @endswitch

@@ -30,6 +30,7 @@ class SampleResource extends JsonResource
             'planned_analysis' => $this->planned_analysis,
             'sample_type' => $this->sample_type,
             'type_details' => $this->type_details,
+            'note' => $this->note,
             'group_label' => $this->groupLabel(),
             'subgroup_label' => $this->subgroupLabel(),
             'storage_condition_label' => $this->storageConditionLabel(),
