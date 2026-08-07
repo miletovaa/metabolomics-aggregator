@@ -47,11 +47,11 @@ class Index extends Component
         $samplings = Sampling::query()
             ->with('sample')
             ->when($this->search !== '', function ($query) {
-                $search = trim($this->search);
+                $search = strtolower(trim($this->search));
                 $query->where(function ($q) use ($search) {
-                    $q->where('place_of_sampling', 'ilike', "%{$search}%")
-                        ->orWhere('country_of_sampling', 'ilike', "%{$search}%")
-                        ->orWhereHas('sample', fn ($sq) => $sq->where('lab_sample_id', 'ilike', "%{$search}%"));
+                    $q->whereRaw('LOWER(place_of_sampling) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(country_of_sampling) LIKE ?', ["%{$search}%"])
+                        ->orWhereHas('sample', fn ($sq) => $sq->whereRaw('LOWER(lab_sample_id) LIKE ?', ["%{$search}%"]));
                 });
             })
             ->latest()

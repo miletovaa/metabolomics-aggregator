@@ -13,13 +13,29 @@ return new class extends Migration
             $table->boolean('is_terpene')->default(false)->after('is_duplicate');
         });
 
-        DB::statement("
-            UPDATE project_compounds pc
-            SET is_terpene = TRUE
-            FROM taxonomies t
-            WHERE pc.compound_id = t.compound_id
-              AND LOWER(t.raw_json::text) LIKE '%terpen%'
-        ");
+        // Portable across Postgres/MySQL: PDO returns JSON columns as plain strings either way,
+        // so the "contains 'terpen'" check is done in PHP rather than via a DB-specific cast/join.
+        DB::table('project_compounds')
+            ->whereNotNull('compound_id')
+            ->orderBy('id')
+            ->select('id', 'compound_id')
+            ->chunkById(500, function ($rows) {
+                $compoundIds = $rows->pluck('compound_id')->unique();
+
+                $terpeneCompoundIds = DB::table('taxonomies')
+                    ->whereIn('compound_id', $compoundIds)
+                    ->whereNotNull('raw_json')
+                    ->get(['compound_id', 'raw_json'])
+                    ->filter(fn ($t) => str_contains(strtolower((string) $t->raw_json), 'terpen'))
+                    ->pluck('compound_id');
+
+                if ($terpeneCompoundIds->isNotEmpty()) {
+                    DB::table('project_compounds')
+                        ->whereIn('id', $rows->pluck('id'))
+                        ->whereIn('compound_id', $terpeneCompoundIds)
+                        ->update(['is_terpene' => true]);
+                }
+            });
     }
 
     public function down(): void

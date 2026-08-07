@@ -47,11 +47,11 @@ class Index extends Component
         $samples = Sample::query()
             ->with(['project', 'responsibleAnalyst'])
             ->when($this->search !== '', function ($query) {
-                $search = trim($this->search);
+                $search = strtolower(trim($this->search));
                 $query->where(function ($q) use ($search) {
-                    $q->where('lab_sample_id', 'ilike', "%{$search}%")
-                        ->orWhere('external_id', 'ilike', "%{$search}%")
-                        ->orWhere('matrix_group', 'ilike', "%{$search}%");
+                    $q->whereRaw('LOWER(lab_sample_id) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(external_id) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(matrix_group) LIKE ?', ["%{$search}%"]);
                 });
             })
             ->latest()

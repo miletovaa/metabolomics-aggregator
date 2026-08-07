@@ -48,8 +48,8 @@ class Index extends Component
             ->withCount('records')
             ->with('project')
             ->when($this->search !== '', function ($query) {
-                $search = trim($this->search);
-                $query->where('name', 'ilike', "%{$search}%");
+                $search = strtolower(trim($this->search));
+                $query->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
             })
             ->latest()
             ->paginate(15);

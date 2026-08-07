@@ -13,34 +13,40 @@ return new class extends Migration
             $table->string('terpene_type')->nullable()->after('is_terpene');
         });
 
-        // Backfill terpene_type for already-mapped terpene compounds.
-        // is_alcohol = molecular_formula contains 'O'
-        DB::statement("
-            UPDATE project_compounds pc
-            SET terpene_type = (
-                SELECT
-                    CASE
-                        WHEN c.molecular_formula IS NULL THEN NULL
-                        WHEN c.molecular_formula LIKE '%O%' THEN
-                            CASE (regexp_match(c.molecular_formula, 'C(\d+)'))[1]::int
-                                WHEN 10 THEN 'Monoterpenol'
-                                WHEN 15 THEN 'Sesquiterpenol'
-                                WHEN 20 THEN 'Diterpenol'
-                                ELSE 'Other'
-                            END
-                        ELSE
-                            CASE (regexp_match(c.molecular_formula, 'C(\d+)'))[1]::int
-                                WHEN 10 THEN 'Monoterpene'
-                                WHEN 15 THEN 'Sesquiterpene'
-                                WHEN 20 THEN 'Diterpene'
-                                ELSE 'Other'
-                            END
-                    END
-                FROM compounds c
-                WHERE c.id = pc.compound_id
-            )
-            WHERE pc.is_terpene = TRUE
-        ");
+        // Backfill terpene_type for already-mapped terpene compounds. Done in PHP (rather than a
+        // Postgres-only regexp_match(...)::int expression) so this migration also runs on MySQL.
+        // is_alcohol = molecular_formula contains 'O'; carbon count from the formula's "C<n>" part.
+        DB::table('project_compounds')
+            ->where('is_terpene', true)
+            ->whereNotNull('compound_id')
+            ->orderBy('id')
+            ->select('id', 'compound_id')
+            ->chunkById(500, function ($rows) {
+                $compounds = DB::table('compounds')
+                    ->whereIn('id', $rows->pluck('compound_id')->unique())
+                    ->get(['id', 'molecular_formula'])
+                    ->keyBy('id');
+
+                foreach ($rows as $row) {
+                    $formula = $compounds->get($row->compound_id)?->molecular_formula;
+
+                    if ($formula === null) {
+                        continue;
+                    }
+
+                    $isAlcohol = str_contains($formula, 'O');
+                    $carbonCount = preg_match('/C(\d+)/', $formula, $m) ? (int) $m[1] : null;
+
+                    $terpeneType = match ($carbonCount) {
+                        10 => $isAlcohol ? 'Monoterpenol' : 'Monoterpene',
+                        15 => $isAlcohol ? 'Sesquiterpenol' : 'Sesquiterpene',
+                        20 => $isAlcohol ? 'Diterpenol' : 'Diterpene',
+                        default => 'Other',
+                    };
+
+                    DB::table('project_compounds')->where('id', $row->id)->update(['terpene_type' => $terpeneType]);
+                }
+            });
     }
 
     public function down(): void

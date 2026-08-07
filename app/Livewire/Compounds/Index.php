@@ -218,17 +218,17 @@ class Index extends Component
         $query = Compound::query()
             ->with(['taxonomy', 'retentionIndices.source', 'projects'])
             ->when($this->search !== '', function ($query) {
-                $search = trim($this->search);
+                $search = strtolower(trim($this->search));
 
                 $query->where(function ($q) use ($search) {
-                    $q->where('canonical_name', 'ilike', "%{$search}%")
-                        ->orWhere('iupac_name', 'ilike', "%{$search}%")
-                        ->orWhere('inchikey', 'ilike', "%{$search}%")
-                        ->orWhere('hmdb_id', 'ilike', "%{$search}%")
-                        ->orWhere('chebi_id', 'ilike', "%{$search}%")
-                        ->orWhere('pubchem_cid', 'ilike', "%{$search}%")
+                    $q->whereRaw('LOWER(canonical_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(iupac_name) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(inchikey) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(hmdb_id) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(chebi_id) LIKE ?', ["%{$search}%"])
+                        ->orWhereRaw('LOWER(pubchem_cid) LIKE ?', ["%{$search}%"])
                         ->orWhereHas('synonyms', function ($sq) use ($search) {
-                            $sq->where('name', 'ilike', "%{$search}%");
+                            $sq->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
                         });
                 });
             })
@@ -238,7 +238,7 @@ class Index extends Component
             ->when($this->filterHasSmiles,  fn($q) => $q->whereNotNull('smiles'))
             ->when($this->filterIsTerpene,  fn($q) => $q->whereHas('taxonomy', fn($tq) =>
                 $tq->where('kingdom', 'Terpenoids and polyketides')
-                   ->orWhere('superclass', 'ilike', '%terpenoid%')
+                   ->orWhereRaw('LOWER(superclass) LIKE ?', ['%terpenoid%'])
             ))
             ->when($this->filterKingdom !== '', fn($q) => $q->whereHas('taxonomy', fn($tq) =>
                 $tq->where('kingdom', $this->filterKingdom)
