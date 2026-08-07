@@ -39,14 +39,13 @@ class Sample extends Model
 
     public const GROUPS = [
         'food' => 'Food',
-        'environment' => 'Environment',
         'human_medical' => 'Human/Medical',
         'plant' => 'Plant',
         'animal' => 'Animal',
     ];
 
     // Groups that carry a dedicated sample type details block (identification → type details → storage).
-    public const TYPE_DETAIL_GROUPS = ['plant', 'animal', 'environment'];
+    public const TYPE_DETAIL_GROUPS = ['plant', 'animal'];
 
     public const SUBGROUPS = [
         'food' => [
@@ -65,15 +64,6 @@ class Sample extends Model
             'beverages' => 'Beverages',
             'herbs_spices' => 'Herbs and spices',
             'mushrooms' => 'Mushrooms',
-        ],
-        'environment' => [
-            'water' => 'Water',
-            'air' => 'Air',
-            'soil' => 'Soil',
-            'sediments' => 'Sediments',
-            'biological' => 'Biological',
-            'surface' => 'Surface',
-            'dust_particulate' => 'Dust and particulate',
         ],
         'human_medical' => [
             'blood' => 'Blood',

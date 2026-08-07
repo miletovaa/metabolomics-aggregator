@@ -233,29 +233,6 @@
                 <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
             </div>
         </div>
-    @elseif($group === 'environment')
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-                <label class="{{ $labelClass }}">Depth</label>
-                <input wire:model="typeDetails.depth" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Temperature at sampling</label>
-                <input wire:model="typeDetails.temperature_at_sampling" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">pH</label>
-                <input wire:model="typeDetails.ph" class="{{ $inputClass }}">
-            </div>
-            <div>
-                <label class="{{ $labelClass }}">Conductivity</label>
-                <input wire:model="typeDetails.conductivity" class="{{ $inputClass }}">
-            </div>
-            <div class="md:col-span-4">
-                <label class="{{ $labelClass }}">Note</label>
-                <textarea wire:model="typeDetails.note" rows="2" class="{{ $inputClass }}"></textarea>
-            </div>
-        </div>
     @endif
 </div>
 @endif
