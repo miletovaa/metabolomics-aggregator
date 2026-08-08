@@ -17,7 +17,10 @@ return new class extends Migration
             $table->string('iupac_name', 255)->nullable();
             $table->string('molecular_formula', 255)->nullable();
             $table->text('smiles')->nullable();
-            $table->text('inchi')->unique()->nullable();
+            // Bounded (not text()) so this can carry a real unique index under MySQL, which
+            // can't index unbounded TEXT/BLOB columns. 767 chars covers real InChI strings
+            // with headroom, and fits MySQL's utf8mb4 index key limit (3072 bytes / 4).
+            $table->string('inchi', 767)->unique()->nullable();
             $table->string('inchikey', 30)->unique()->nullable();
             $table->string('pubchem_cid', 255)->unique()->nullable();
             $table->string('cas', 255)->nullable();
