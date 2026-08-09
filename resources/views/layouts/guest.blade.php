@@ -13,6 +13,12 @@
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        {{-- Without an explicit declaration here, Livewire auto-injects its own
+             script tag into the response — on top of app.js already importing
+             and starting Livewire itself. Same double-init bug as app.blade.php;
+             declaring it explicitly (config-only, no second runtime) prevents that. --}}
+        @livewireStyles
+        @livewireScriptConfig
     </head>
     <body class="font-sans text-gray-900 antialiased">
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
