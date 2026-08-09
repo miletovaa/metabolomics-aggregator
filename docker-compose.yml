@@ -18,7 +18,10 @@ services:
   nginx:
     image: nginx:alpine
     ports:
-      - "80:80"
+      # Localhost-only: a separate shared Caddy instance owns the public
+      # 80/443 ports (this VPS also hosts a second, unrelated site) and
+      # reverse-proxies to this port — see the deploy guide's "edge" setup.
+      - "127.0.0.1:8080:80"
     volumes:
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - public_html:/var/www/html/public:ro
