@@ -81,6 +81,22 @@ services:
       - redisdata:/data
     restart: unless-stopped
 
+  phpmyadmin:
+    image: phpmyadmin:latest
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      UPLOAD_LIMIT: 64M
+    ports:
+      # Localhost-only, same as nginx above — the shared edge Caddy gives this
+      # its own port (343920.fornex.cloud:8444) on the public hostname, same
+      # pattern as sopm's :8443. Login uses real MySQL credentials (DB_USERNAME/
+      # DB_PASSWORD from .env) — phpMyAdmin has no separate user store of its own.
+      - "127.0.0.1:8084:80"
+    depends_on:
+      - db
+    restart: unless-stopped
+
 volumes:
   dbdata:
   redisdata:
