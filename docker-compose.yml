@@ -11,8 +11,10 @@ services:
       - ./storage/app/databases:/var/www/html/storage/app/databases
       - public_html:/var/www/html/public
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     restart: unless-stopped
 
   nginx:
@@ -56,13 +58,19 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:16-alpine
+    image: mysql:8
     environment:
-      POSTGRES_DB: ${DB_DATABASE}
-      POSTGRES_USER: ${DB_USERNAME}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USERNAME}", "-p${DB_PASSWORD}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     restart: unless-stopped
 
   redis:
@@ -72,7 +80,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  pgdata:
+  dbdata:
   redisdata:
   storage:
   public_html:
