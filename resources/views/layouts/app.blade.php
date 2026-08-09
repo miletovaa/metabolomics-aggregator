@@ -34,6 +34,14 @@
             </main>
         </div>
 
-        @livewireScripts
+        {{-- Not @livewireScripts: resources/js/app.js already imports Livewire/Alpine
+             from vendor and calls Livewire.start()/Alpine.start() itself (so the bundle
+             goes through Vite like the rest of the app's JS). @livewireScripts would load
+             AND auto-start a second, separate Livewire runtime on the same page — two
+             instances fighting over the same wire:id DOM nodes, which is what caused
+             "Public method [$commit]/[$set] not found" errors when submitting forms.
+             @livewireScriptConfig only emits the runtime config (CSRF token, update
+             endpoint) as inline vars for our own bundle's Livewire.start() to pick up. --}}
+        @livewireScriptConfig
     </body>
 </html>
