@@ -1,0 +1,27 @@
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+node_modules
+vendor
+public/build
+# These are host-machine cached artifacts (package discovery, compiled config)
+# that can reference dev-only packages or local paths — always regenerate
+# fresh inside the image instead of copying the host's copies in.
+bootstrap/cache/*.php
+!bootstrap/cache/.gitignore
+storage/app/databases/*.sqlite
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+!storage/app/.gitignore
+!storage/framework/cache/.gitignore
+!storage/framework/sessions/.gitignore
+!storage/framework/views/.gitignore
+!storage/logs/.gitignore
+tests
+README.md
+.editorconfig
+.styleci.yml
