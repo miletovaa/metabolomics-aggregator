@@ -15,6 +15,7 @@ use App\Livewire\Projects\Create as ProjectsCreate;
 use App\Livewire\Projects\Show as ProjectsShow;
 use App\Livewire\Samples\Create as SamplesCreate;
 use App\Livewire\Samples\Edit as SamplesEdit;
+use App\Livewire\Samples\Import as SamplesImport;
 use App\Livewire\Samples\Index as SamplesIndex;
 use App\Livewire\Samplings\Create as SamplingsCreate;
 use App\Livewire\Samplings\Edit as SamplingsEdit;
@@ -50,6 +51,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/samples', SamplesIndex::class)->name('samples.index');
     Route::get('/samples/create', SamplesCreate::class)->name('samples.create');
+    Route::get('/samples/import', SamplesImport::class)->name('samples.import');
     Route::get('/samples/{sample}/edit', SamplesEdit::class)->name('samples.edit');
 
     Route::get('/activity-log', ActivityLogIndex::class)->name('activity-log.index');

@@ -24,9 +24,14 @@
             <h1 class="text-2xl font-semibold">Samples</h1>
             <p class="text-sm text-gray-500 mt-1">Physical samples currently tracked in storage.</p>
         </div>
-        <a href="{{ route('samples.create') }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm">
-            + Log Sample
-        </a>
+        <div class="flex items-center gap-3">
+            <a href="{{ route('samples.import') }}" wire:navigate class="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-50">
+                Import
+            </a>
+            <a href="{{ route('samples.create') }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm">
+                + Log Sample
+            </a>
+        </div>
     </div>
 
     <div class="mb-4">

@@ -166,6 +166,23 @@ class ActivityLogger
         return static::log('edit_sample', $detail, $sample, $name, $changes);
     }
 
+    public static function importSamples(int $imported, int $total, string $fileName): ActivityLog
+    {
+        $failed = $total - $imported;
+        $detail = "Imported {$imported} of {$total} sample(s) from \"{$fileName}\".";
+        if ($failed > 0) {
+            $detail .= " {$failed} row(s) failed.";
+        }
+
+        return static::log(
+            'import_samples',
+            $detail,
+            null,
+            $fileName,
+            ['imported' => $imported, 'total' => $total, 'failed' => $failed],
+        );
+    }
+
     public static function deleteSample(string $sampleName, ?int $sampleId = null): ActivityLog
     {
         return static::log(
