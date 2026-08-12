@@ -3,6 +3,7 @@
 namespace App\Livewire\Samples;
 
 use App\Imports\SamplesImport;
+use App\Models\Sample;
 use App\Services\ActivityLogger;
 use App\Services\SampleImporter;
 use Livewire\Component;
@@ -18,6 +19,9 @@ class Import extends Component
     public ?int $total = null;
     public ?int $imported = null;
     public array $rowErrors = [];
+
+    /** @var array<int, array{row: int, attributes: array, existing_id: int, existing_label: string, status: string}> */
+    public array $duplicates = [];
 
     protected function rules(): array
     {
@@ -38,6 +42,13 @@ class Import extends Component
         $this->total = $result['total'];
         $this->imported = $result['imported'];
         $this->rowErrors = $result['errors'];
+        $this->duplicates = collect($result['duplicates'])->map(fn ($d) => [
+            'row' => $d['row'],
+            'attributes' => $d['attributes'],
+            'existing_id' => $d['existing']->id,
+            'existing_label' => $d['existing']->lab_sample_id ?: ($d['existing']->external_id ?: ('#' . $d['existing']->id)),
+            'status' => 'pending',
+        ])->all();
 
         if ($result['imported'] > 0) {
             ActivityLogger::importSamples($result['imported'], $result['total'], $this->file->getClientOriginalName());
@@ -45,6 +56,28 @@ class Import extends Component
 
         $this->file = null;
         $this->resetValidation();
+    }
+
+    public function acceptDuplicate(int $index): void
+    {
+        if (! isset($this->duplicates[$index]) || $this->duplicates[$index]['status'] !== 'pending') {
+            return;
+        }
+
+        $sample = Sample::create($this->duplicates[$index]['attributes']);
+        ActivityLogger::createSample($sample);
+
+        $this->duplicates[$index]['status'] = 'accepted';
+        $this->imported++;
+    }
+
+    public function declineDuplicate(int $index): void
+    {
+        if (! isset($this->duplicates[$index]) || $this->duplicates[$index]['status'] !== 'pending') {
+            return;
+        }
+
+        $this->duplicates[$index]['status'] = 'declined';
     }
 
     public function render()

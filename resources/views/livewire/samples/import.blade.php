@@ -39,14 +39,62 @@
         <div class="bg-white shadow rounded-2xl p-6 space-y-4">
             <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">Result</h2>
 
-            @if($imported > 0)
-                <p class="text-sm text-green-700">
-                    Imported {{ $imported }} of {{ $total }} row(s).
-                </p>
-            @else
-                <p class="text-sm text-gray-600">
-                    Imported 0 of {{ $total }} row(s).
-                </p>
+            @php $pendingDuplicates = collect($duplicates)->where('status', 'pending')->count(); @endphp
+
+            <p class="text-sm {{ $imported > 0 ? 'text-green-700' : 'text-gray-600' }}">
+                Imported {{ $imported }} of {{ $total }} row(s).
+                @if($pendingDuplicates > 0)
+                    {{ $pendingDuplicates }} duplicate{{ $pendingDuplicates === 1 ? '' : 's' }} awaiting your decision below.
+                @endif
+            </p>
+
+            @if(count($duplicates) > 0)
+                <div>
+                    <h3 class="text-xs font-semibold text-amber-700 uppercase tracking-wide mb-2">
+                        {{ count($duplicates) }} possible duplicate(s)
+                    </h3>
+                    <p class="text-xs text-gray-500 mb-2">
+                        These rows match an existing sample exactly (same identification, group, storage, analysis and type-detail fields). Accept to import as a new sample anyway, or decline to skip.
+                    </p>
+                    <div class="divide-y divide-gray-100 border rounded-lg overflow-hidden">
+                        @foreach($duplicates as $index => $duplicate)
+                            <div class="p-3 text-sm flex items-center justify-between gap-4">
+                                <div>
+                                    <span class="font-medium text-gray-900">Row {{ $duplicate['row'] }}:</span>
+                                    <span class="text-gray-600">
+                                        matches existing sample
+                                        <a href="{{ route('samples.edit', $duplicate['existing_id']) }}" target="_blank" class="text-indigo-600 hover:underline">
+                                            {{ $duplicate['existing_label'] }}
+                                        </a>
+                                    </span>
+                                </div>
+
+                                @if($duplicate['status'] === 'pending')
+                                    <div class="flex items-center gap-2 shrink-0">
+                                        <button
+                                            type="button"
+                                            wire:click="acceptDuplicate({{ $index }})"
+                                            class="px-3 py-1 rounded-lg text-xs bg-green-600 text-white hover:opacity-90"
+                                        >
+                                            Accept
+                                        </button>
+                                        <button
+                                            type="button"
+                                            wire:click="declineDuplicate({{ $index }})"
+                                            class="px-3 py-1 rounded-lg text-xs border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        >
+                                            Decline
+                                        </button>
+                                    </div>
+                                @elseif($duplicate['status'] === 'accepted')
+                                    <span class="text-xs font-medium text-green-700 shrink-0">Accepted — imported</span>
+                                @else
+                                    <span class="text-xs font-medium text-gray-500 shrink-0">Declined — skipped</span>
+                                @endif
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             @endif
 
             @if(count($rowErrors) > 0)

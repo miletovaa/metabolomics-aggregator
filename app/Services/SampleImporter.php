@@ -48,18 +48,39 @@ class SampleImporter
 
     private const MULTI_VALUE_FIELDS = ['feed'];
 
+    /** Fields compared, verbatim, to decide whether an imported row duplicates an existing sample. */
+    private const DUPLICATE_SCALAR_FIELDS = [
+        'lab_sample_id', 'external_id', 'matrix_group', 'sample_group', 'sample_subgroup',
+        'storage_condition', 'responsible_analyst_id', 'project_id', 'note',
+    ];
+
+    private const DUPLICATE_ARRAY_FIELDS = [
+        'storage_condition_details', 'purpose_of_analysis', 'planned_analysis', 'type_details',
+    ];
+
     /**
      * Import rows produced by SamplesImport (one assoc array per spreadsheet row,
      * keyed by the slugged header). Rows that are entirely blank are skipped and
      * not counted. Every other row is validated independently — a bad row is
      * reported and skipped, it never blocks the rows around it.
      *
-     * @return array{total: int, imported: int, samples: Collection<int, Sample>, errors: array<int, array{row: int, messages: string[]}>}
+     * A valid row whose data exactly matches an existing sample is held back as a
+     * "duplicate" rather than imported automatically — the caller decides per row
+     * whether to accept (import anyway) or decline it.
+     *
+     * @return array{
+     *     total: int,
+     *     imported: int,
+     *     samples: Collection<int, Sample>,
+     *     errors: array<int, array{row: int, messages: string[]}>,
+     *     duplicates: array<int, array{row: int, attributes: array<string, mixed>, existing: Sample}>,
+     * }
      */
     public function import(Collection $rows): array
     {
         $imported = collect();
         $errors = [];
+        $duplicates = [];
         $total = 0;
 
         foreach ($rows as $index => $row) {
@@ -82,6 +103,14 @@ class SampleImporter
                 continue;
             }
 
+            $existing = $this->findDuplicate($attributes);
+
+            if ($existing) {
+                $duplicates[] = ['row' => $rowNumber, 'attributes' => $attributes, 'existing' => $existing];
+
+                continue;
+            }
+
             $imported->push(Sample::create($attributes));
         }
 
@@ -90,7 +119,59 @@ class SampleImporter
             'imported' => $imported->count(),
             'samples' => $imported,
             'errors' => $errors,
+            'duplicates' => $duplicates,
         ];
+    }
+
+    /** Finds an existing sample whose data exactly matches $attributes, if any. */
+    private function findDuplicate(array $attributes): ?Sample
+    {
+        $query = Sample::query();
+
+        foreach (self::DUPLICATE_SCALAR_FIELDS as $field) {
+            $value = $attributes[$field] ?? null;
+            $value === null ? $query->whereNull($field) : $query->where($field, $value);
+        }
+
+        // Compare by date value rather than the raw column: a `date`-cast attribute is written as a
+        // full "Y-m-d H:i:s" string, and not every DB driver truncates it to a bare date on storage.
+        $dateReceived = $attributes['date_received'] ?? null;
+        $dateReceived === null ? $query->whereNull('date_received') : $query->whereDate('date_received', $dateReceived);
+
+        foreach ($query->get() as $candidate) {
+            $matches = true;
+            foreach (self::DUPLICATE_ARRAY_FIELDS as $field) {
+                if ($this->normalizeForComparison($candidate->{$field}) !== $this->normalizeForComparison($attributes[$field] ?? null)) {
+                    $matches = false;
+
+                    break;
+                }
+            }
+
+            if ($matches) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    /** Sorts arrays (recursively, keys for maps, values for lists) so equivalent data compares equal regardless of order. */
+    private function normalizeForComparison(mixed $value): mixed
+    {
+        if (! is_array($value)) {
+            return $value;
+        }
+
+        $normalized = array_map(fn ($v) => $this->normalizeForComparison($v), $value);
+
+        if (array_is_list($normalized)) {
+            sort($normalized);
+        } else {
+            ksort($normalized);
+        }
+
+        return $normalized;
     }
 
     private function normalizeRow(array $row): array
