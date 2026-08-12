@@ -341,4 +341,9 @@ class ActivityLogger
             $userId,
         );
     }
+
+    public static function login(Model $user): ActivityLog
+    {
+        return static::log('login', "\"{$user->name}\" logged in.", $user, $user->name, [], $user->id);
+    }
 }

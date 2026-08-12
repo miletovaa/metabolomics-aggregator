@@ -62,6 +62,7 @@ class ActivityLog extends Model
         'edit_user'   => ['label' => 'Edited profile', 'color' => 'blue'],
         'change_password' => ['label' => 'Changed password', 'color' => 'blue'],
         'delete_user' => ['label' => 'Deleted account', 'color' => 'red'],
+        'login'       => ['label' => 'Logged in', 'color' => 'gray'],
     ];
 
     public function eventLabel(): string
