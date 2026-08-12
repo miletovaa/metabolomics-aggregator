@@ -33,7 +33,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $essentialOils?->id,
                 'purpose_of_analysis' => ['authentication', 'geographical_traceability'],
                 'planned_analysis' => ['d13c', 'd18o'],
-                'sample_type' => 'plant',
                 'type_details' => [
                     'latin_name' => 'Malus domestica',
                     'part_of_plant' => 'fruits',
@@ -71,7 +70,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $milkProject->id,
                 'purpose_of_analysis' => ['authentication', 'origin_of_materials'],
                 'planned_analysis' => ['d13c', 'd15n'],
-                'sample_type' => 'animal',
                 'type_details' => [
                     'common_name' => 'Cattle',
                     'latin_name' => 'Bos taurus',
@@ -109,7 +107,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $milkProject->id,
                 'purpose_of_analysis' => ['quality_control', 'geographical_traceability'],
                 'planned_analysis' => ['d13c', 'd18o', 'elemental_composition'],
-                'sample_type' => 'animal',
                 'type_details' => [
                     'common_name' => 'Dairy cow',
                     'latin_name' => 'Bos taurus',
@@ -148,7 +145,6 @@ class SampleSeeder extends Seeder
                 'project_id' => null,
                 'purpose_of_analysis' => ['metabolic_diagnostic_testing', 'biomarker_detection'],
                 'planned_analysis' => ['mk_gc_ms_fid'],
-                'sample_type' => null,
                 'type_details' => null,
                 'sampling' => [
                     'date_of_sampling' => '2026-04-10',
@@ -171,7 +167,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $essentialOils?->id,
                 'purpose_of_analysis' => ['characterisation', 'screening'],
                 'planned_analysis' => ['voc_gc_ms', 'voc_gc_irms'],
-                'sample_type' => 'plant',
                 'type_details' => [
                     'latin_name' => 'Salvia officinalis',
                     'part_of_plant' => 'leaves',
@@ -203,7 +198,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $vocProject?->id,
                 'purpose_of_analysis' => ['authentication'],
                 'planned_analysis' => ['d13c', 'd15n'],
-                'sample_type' => 'animal',
                 'type_details' => [
                     'common_name' => 'Rainbow trout',
                     'latin_name' => 'Oncorhynchus mykiss',
@@ -230,7 +224,6 @@ class SampleSeeder extends Seeder
                 'project_id' => $essentialOils?->id,
                 'purpose_of_analysis' => ['authentication', 'geographical_traceability'],
                 'planned_analysis' => ['d13c', 'd2h'],
-                'sample_type' => null,
                 'type_details' => null,
                 'note' => 'Commercial multi-origin blend; single botanical source not declared, so no plant/animal type details apply.',
                 'sampling' => [

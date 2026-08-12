@@ -24,7 +24,6 @@ class Sample extends Model
         'project_id',
         'purpose_of_analysis',
         'planned_analysis',
-        'sample_type',
         'type_details',
         'note',
     ];

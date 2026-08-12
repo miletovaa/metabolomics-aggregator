@@ -53,7 +53,6 @@ class Create extends Component
             'project_id' => $project?->id,
             'purpose_of_analysis' => $this->purposeOfAnalysis ?: null,
             'planned_analysis' => $this->plannedAnalysis ?: null,
-            'sample_type' => $this->hasTypeDetails() ? $this->group : null,
             'type_details' => $this->hasTypeDetails() ? (array_filter($this->typeDetails, fn ($v) => $v !== '' && $v !== null && $v !== []) ?: null) : null,
             'note' => $this->note ?: null,
         ]);

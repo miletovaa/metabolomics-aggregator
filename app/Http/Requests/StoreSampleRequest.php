@@ -34,7 +34,6 @@ class StoreSampleRequest extends FormRequest
             'responsible_analyst_id' => ['nullable', 'exists:users,id'],
             'purpose_of_analysis' => ['nullable', 'array'],
             'planned_analysis' => ['nullable', 'array'],
-            'sample_type' => ['nullable', 'string', 'max:50'],
             'type_details' => ['nullable', 'array'],
             'note' => ['nullable', 'string'],
         ];
