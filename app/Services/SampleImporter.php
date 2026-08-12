@@ -10,7 +10,7 @@ use Illuminate\Support\Collection;
 
 class SampleImporter
 {
-    public const MULTI_VALUE_DELIMITER = ';';
+    public const MULTI_VALUE_DELIMITER = ',';
 
     /**
      * Type-details fields per sample_group, mirroring the fields on the sample
@@ -30,7 +30,6 @@ class SampleImporter
             'irrigation' => ['yes' => 'Yes', 'no' => 'No'],
             'source_of_water' => Sample::SOURCE_OF_WATER,
             'processing_type' => Sample::PLANT_PROCESSING_TYPES,
-            'note' => null,
         ],
         'animal' => [
             'common_name' => null,
@@ -44,7 +43,6 @@ class SampleImporter
             'source_of_drinking_water' => Sample::SOURCE_OF_WATER,
             'processing_type' => Sample::ANIMAL_PROCESSING_TYPES,
             'feed' => Sample::ANIMAL_FEED_TYPES,
-            'note' => null,
         ],
     ];
 

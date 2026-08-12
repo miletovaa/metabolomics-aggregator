@@ -12,7 +12,7 @@
             <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">samples_template.xlsx</code> for the expected
             columns. For fields with multiple values (e.g. <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">feed</code>,
             <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">purpose_of_analysis</code>), separate values with a
-            semicolon (<code class="text-xs bg-gray-100 px-1 py-0.5 rounded">;</code>).
+            comma (<code class="text-xs bg-gray-100 px-1 py-0.5 rounded">,</code>), e.g. <code class="text-xs bg-gray-100 px-1 py-0.5 rounded">forage, concentrates</code>.
             Rows with an error are skipped and reported below — every other row still imports.
         </p>
 
