@@ -90,6 +90,7 @@ class Sample extends Model
         'sterile' => 'Sterile',
         'controlled_humidity' => 'Controlled humidity',
         'dry' => 'Dry',
+        'styrofoam_box_with_ice' => 'Styrofoam box with ice',
     ];
 
     public const PURPOSES_OF_ANALYSIS = [

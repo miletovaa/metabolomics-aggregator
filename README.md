@@ -642,7 +642,7 @@ php artisan view:cache
     sample_subgroup string(50) nullable — depends on sample_group, see Sample::SUBGROUPS
     date_received date nullable
     storage_condition string(50) nullable — dark_room_temp | refrigerated | frozen | deep_frozen
-    storage_condition_details json nullable — multi-select: vacuum_sealed, inert_gas, sterile, controlled_humidity, dry
+    storage_condition_details json nullable — multi-select: vacuum_sealed, inert_gas, sterile, controlled_humidity, dry, styrofoam_box_with_ice
     responsible_analyst_id foreign_id nullable (users)
     project_id foreign_id nullable (projects)
     purpose_of_analysis json nullable — multi-select, see Sample::PURPOSES_OF_ANALYSIS
