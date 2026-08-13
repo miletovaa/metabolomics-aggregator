@@ -4,6 +4,7 @@ namespace App\Livewire\Samplings;
 
 use App\Models\Sampling;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -30,7 +31,7 @@ class Index extends Component
 
     public function deleteSampling(int $id): void
     {
-        $sampling = Sampling::findOrFail($id);
+        $sampling = Sampling::visibleTo(Auth::user())->findOrFail($id);
         $name = $sampling->sample?->lab_sample_id ?: "#{$sampling->id}";
         $sampling->delete();
         ActivityLogger::deleteSampling($name, $id);
@@ -45,6 +46,7 @@ class Index extends Component
     public function render()
     {
         $samplings = Sampling::query()
+            ->visibleTo(Auth::user())
             ->with('sample')
             ->when($this->search !== '', function ($query) {
                 $search = strtolower(trim($this->search));

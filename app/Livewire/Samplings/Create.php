@@ -5,6 +5,7 @@ namespace App\Livewire\Samplings;
 use App\Models\Sample;
 use App\Models\Sampling;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class Create extends Component
@@ -33,6 +34,8 @@ class Create extends Component
             'packaging' => ['nullable', 'in:' . implode(',', array_keys(Sampling::PACKAGING_OPTIONS))],
         ]);
 
+        abort_unless(Sample::visibleTo(Auth::user())->whereKey($this->sampleId)->exists(), 404);
+
         $sampling = Sampling::create([
             'sample_id' => $this->sampleId,
             'date_of_sampling' => $this->dateOfSampling ?: null,
@@ -58,6 +61,7 @@ class Create extends Component
     {
         return view('livewire.samplings.create', [
             'availableSamples' => Sample::query()
+                ->visibleTo(Auth::user())
                 ->whereDoesntHave('sampling')
                 ->orderByDesc('id')
                 ->get(['id', 'lab_sample_id', 'external_id']),

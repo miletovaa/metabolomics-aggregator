@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,16 @@ class Sampling extends Model
         'packaging',
         'collector',
     ];
+
+    /** A sampling has no owner of its own — visibility is inherited from its sample. */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->whereHas('sample', fn (Builder $q) => $q->visibleTo($user));
+    }
 
     protected $casts = [
         'date_of_sampling' => 'date',

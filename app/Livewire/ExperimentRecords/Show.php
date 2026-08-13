@@ -6,6 +6,7 @@ use App\Models\Experiment;
 use App\Models\ExperimentRecord;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 /**
@@ -21,6 +22,7 @@ class Show extends Component
 
     public function mount(Experiment $experiment, ExperimentRecord $record): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
         abort_unless($record->experiment_id === $experiment->id, 404);
 
         $this->experiment = $experiment;

@@ -4,6 +4,7 @@ namespace App\Livewire\Experiments;
 
 use App\Models\Experiment;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -30,7 +31,7 @@ class Index extends Component
 
     public function deleteExperiment(int $id): void
     {
-        $experiment = Experiment::findOrFail($id);
+        $experiment = Experiment::visibleTo(Auth::user())->findOrFail($id);
         $name = $experiment->name;
         $experiment->delete();
         ActivityLogger::deleteExperiment($name, $id);
@@ -45,6 +46,7 @@ class Index extends Component
     public function render()
     {
         $experiments = Experiment::query()
+            ->visibleTo(Auth::user())
             ->withCount('records')
             ->with('project')
             ->when($this->search !== '', function ($query) {

@@ -7,6 +7,7 @@ use App\Models\ExperimentRecord;
 use App\Models\Sample;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class Create extends Component
@@ -24,6 +25,8 @@ class Create extends Component
 
     public function mount(Experiment $experiment): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
+
         $this->experiment = $experiment;
     }
 
@@ -96,7 +99,7 @@ class Create extends Component
     public function render()
     {
         return view('livewire.experiment-records.create', [
-            'samples' => Sample::orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
+            'samples' => Sample::visibleTo(Auth::user())->orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
             'users' => User::orderBy('name')->get(['id', 'name']),
             'parentCandidates' => $this->experiment->records()
                 ->when($this->sampleId, fn ($q) => $q->where('sample_id', $this->sampleId))

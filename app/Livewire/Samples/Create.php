@@ -79,7 +79,7 @@ class Create extends Component
         }
 
         if ($this->projectId) {
-            return Project::find($this->projectId);
+            return Project::visibleTo(Auth::user())->find($this->projectId);
         }
 
         return null;
@@ -105,7 +105,7 @@ class Create extends Component
     {
         return view('livewire.samples.create', [
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name']),
             'subgroupOptions' => Sample::SUBGROUPS[$this->group] ?? [],
         ])->layout('layouts.app');
     }

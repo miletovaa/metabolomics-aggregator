@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -27,6 +28,19 @@ class Sample extends Model
         'type_details',
         'note',
     ];
+
+    /** Admins see every sample; everyone else only samples they're responsible for or that belong to a project they own. */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($user) {
+            $q->where('responsible_analyst_id', $user->id)
+                ->orWhereHas('project', fn (Builder $p) => $p->where('user_id', $user->id));
+        });
+    }
 
     protected $casts = [
         'date_received' => 'date',

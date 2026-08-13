@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Models\Compound;
 use App\Models\ProjectCompound;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,6 +22,16 @@ class Project extends Model
         'status',
         'user_id',
     ];
+
+    /** Admins see every project; everyone else only their own. */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where('user_id', $user->id);
+    }
 
     public function user(): BelongsTo
     {

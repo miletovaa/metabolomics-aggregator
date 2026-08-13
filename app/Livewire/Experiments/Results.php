@@ -161,6 +161,7 @@ class Results extends Component
 
     public function mount(Experiment $experiment): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
         abort_unless($experiment->project_id, 404);
         abort_unless(in_array($this->recordType, ExperimentRecord::COMPOUND_RESULT_TYPES, true), 404);
         abort_unless(Sample::whereKey($this->sampleId)->exists(), 404);

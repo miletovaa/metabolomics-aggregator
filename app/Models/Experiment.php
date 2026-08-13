@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -20,6 +21,19 @@ class Experiment extends Model
         'completed_at',
         'created_by',
     ];
+
+    /** Admins see every experiment; everyone else only ones they created or that belong to a project they own. */
+    public function scopeVisibleTo(Builder $query, User $user): Builder
+    {
+        if ($user->isAdmin()) {
+            return $query;
+        }
+
+        return $query->where(function (Builder $q) use ($user) {
+            $q->where('created_by', $user->id)
+                ->orWhereHas('project', fn (Builder $p) => $p->where('user_id', $user->id));
+        });
+    }
 
     protected $casts = [
         'started_at' => 'date',

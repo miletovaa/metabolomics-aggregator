@@ -23,7 +23,7 @@ class Index extends Component
             return;
         }
 
-        $project = Auth::user()->projects()->findOrFail($id);
+        $project = Project::visibleTo(Auth::user())->findOrFail($id);
 
         try {
             $oldName = $project->name;
@@ -43,7 +43,7 @@ class Index extends Component
             return;
         }
 
-        $project = Auth::user()->projects()->findOrFail($id);
+        $project = Project::visibleTo(Auth::user())->findOrFail($id);
         $oldStatus = $project->status;
         $project->update(['status' => $status]);
         ActivityLogger::editProject($project, ['status' => "{$oldStatus} → {$status}"]);
@@ -54,7 +54,7 @@ class Index extends Component
 
     public function deleteProject(int $id): void
     {
-        $project = Auth::user()->projects()->findOrFail($id);
+        $project = Project::visibleTo(Auth::user())->findOrFail($id);
         $name    = $project->name;
         $project->delete();
         ActivityLogger::deleteProject($name, $id);
@@ -71,8 +71,7 @@ class Index extends Component
 
     public function render()
     {
-        $projects = Auth::user()
-            ->projects()
+        $projects = Project::visibleTo(Auth::user())
             ->latest()
             ->get();
 

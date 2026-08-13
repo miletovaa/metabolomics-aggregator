@@ -7,6 +7,7 @@ use App\Models\ExperimentRecord;
 use App\Models\Sample;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class Edit extends Component
@@ -24,6 +25,7 @@ class Edit extends Component
 
     public function mount(Experiment $experiment, ExperimentRecord $record): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
         abort_unless($record->experiment_id === $experiment->id, 404);
         // Compound-based results now live as ProjectCompound rows, managed on the scoped
         // project-compounds page — there should be no ExperimentRecord rows of these types
@@ -81,7 +83,7 @@ class Edit extends Component
     public function render()
     {
         return view('livewire.experiment-records.edit', [
-            'samples' => Sample::orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
+            'samples' => Sample::visibleTo(Auth::user())->orderByDesc('id')->get(['id', 'lab_sample_id', 'external_id']),
             'users' => User::orderBy('name')->get(['id', 'name']),
             'parentCandidates' => $this->experiment->records()
                 ->where('id', '!=', $this->record->id)

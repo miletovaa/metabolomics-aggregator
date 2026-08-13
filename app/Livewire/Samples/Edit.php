@@ -32,6 +32,8 @@ class Edit extends Component
 
     public function mount(Sample $sample): void
     {
+        abort_unless(Sample::visibleTo(Auth::user())->whereKey($sample->id)->exists(), 404);
+
         $this->sample = $sample;
 
         $this->labSampleId = (string) $sample->lab_sample_id;
@@ -112,7 +114,7 @@ class Edit extends Component
         }
 
         if ($this->projectId) {
-            return Project::find($this->projectId);
+            return Project::visibleTo(Auth::user())->find($this->projectId);
         }
 
         return null;
@@ -138,7 +140,7 @@ class Edit extends Component
     {
         return view('livewire.samples.edit', [
             'users' => User::orderBy('name')->get(['id', 'name']),
-            'projects' => Project::orderBy('name')->get(['id', 'name']),
+            'projects' => Project::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name']),
             'subgroupOptions' => Sample::SUBGROUPS[$this->group] ?? [],
         ])->layout('layouts.app');
     }

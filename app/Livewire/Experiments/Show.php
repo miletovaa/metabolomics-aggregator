@@ -6,6 +6,7 @@ use App\Models\Experiment;
 use App\Models\ExperimentRecord;
 use App\Models\ProjectCompound;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class Show extends Component
@@ -15,6 +16,8 @@ class Show extends Component
 
     public function mount(Experiment $experiment): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
+
         $this->experiment = $experiment;
         $this->successMessage = session('success');
     }

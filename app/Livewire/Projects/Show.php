@@ -3,6 +3,7 @@
 namespace App\Livewire\Projects;
 
 use App\Models\Project;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 /**
@@ -16,6 +17,8 @@ class Show extends Component
 
     public function mount(Project $project): void
     {
+        abort_unless(Project::visibleTo(Auth::user())->whereKey($project->id)->exists(), 404);
+
         $this->project = $project;
     }
 
