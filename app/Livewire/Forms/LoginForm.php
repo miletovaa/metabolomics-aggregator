@@ -41,10 +41,7 @@ class LoginForm extends Form
 
         RateLimiter::clear($this->throttleKey());
 
-        $user = Auth::user();
-        if ($user->username !== 'admin') {
-            ActivityLogger::login($user);
-        }
+        ActivityLogger::login(Auth::user());
     }
 
     /**
