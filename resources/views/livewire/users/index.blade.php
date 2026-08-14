@@ -35,6 +35,7 @@
         <table class="w-full text-sm">
             <thead class="bg-gray-50 border-b">
                 <tr class="text-left text-gray-700">
+                    <th class="p-3">ID</th>
                     <th class="p-3">Name</th>
                     <th class="p-3">Username</th>
                     <th class="p-3">Email</th>
@@ -50,6 +51,7 @@
                         @if($canEdit) x-on:click="Livewire.navigate('{{ route('users.edit', $user) }}')" @endif
                         class="hover:bg-gray-50 {{ $canEdit ? 'cursor-pointer' : '' }}"
                     >
+                        <td class="p-3 text-gray-500">{{ $user->id }}</td>
                         <td class="p-3 font-medium text-gray-900">
                             {{ $user->name }}
                             @if($user->id === auth()->id())
@@ -89,7 +91,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="p-8 text-center text-gray-400">
+                        <td colspan="7" class="p-8 text-center text-gray-400">
                             No users yet.
                         </td>
                     </tr>

@@ -39,6 +39,7 @@
             <table class="w-full text-sm">
                 <thead class="bg-gray-50 rounded-xl border-b">
                     <tr class="text-left text-gray-700">
+                        <th class="p-3">ID</th>
                         <th class="p-3">Name</th>
                         <th class="p-3">Status</th>
                         <th class="p-3">Created</th>
@@ -86,6 +87,8 @@
                             @click="handleClick()"
                             @dblclick="handleDblClick()"
                         >
+                            <td class="p-3 text-gray-500">{{ $project->id }}</td>
+
                             {{-- Name — double-click to rename --}}
                             <td class="p-3">
                                 <div class="flex items-center gap-2">
@@ -158,7 +161,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="4" class="p-6 text-center text-gray-400">No projects yet.</td>
+                            <td colspan="5" class="p-6 text-center text-gray-400">No projects yet.</td>
                         </tr>
                     @endforelse
                 </tbody>
