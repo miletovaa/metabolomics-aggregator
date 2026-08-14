@@ -81,8 +81,8 @@
                                     wire:click="deleteUser({{ $user->id }})"
                                     wire:confirm="Delete \"{{ $user->name }}\"? This cannot be undone."
                                     class="text-gray-400 hover:text-red-600"
-                                    title="Delete user"
-                                    @disabled($user->id === auth()->id())
+                                    title="{{ $user->isAdmin() ? 'Admin accounts cannot be deleted' : ($user->id === auth()->id() ? 'You cannot delete your own account' : 'Delete user') }}"
+                                    @disabled($user->id === auth()->id() || $user->isAdmin())
                                 >
                                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
                                 </button>

@@ -30,6 +30,13 @@ class Index extends Component
         }
 
         $user = User::findOrFail($id);
+
+        if ($user->isAdmin()) {
+            $this->errorMessage = 'Admin accounts cannot be deleted.';
+
+            return;
+        }
+
         $name = $user->name;
         $user->delete();
 
