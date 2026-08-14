@@ -22,6 +22,9 @@ use App\Livewire\Samples\Index as SamplesIndex;
 use App\Livewire\Samplings\Create as SamplingsCreate;
 use App\Livewire\Samplings\Edit as SamplingsEdit;
 use App\Livewire\Samplings\Index as SamplingsIndex;
+use App\Livewire\Users\Create as UsersCreate;
+use App\Livewire\Users\Edit as UsersEdit;
+use App\Livewire\Users\Index as UsersIndex;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', DashboardIndex::class)
@@ -60,6 +63,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/option-lists', OptionListsIndex::class)->name('option-lists.index');
     Route::get('/option-lists/{optionList}', OptionListsShow::class)->name('option-lists.show');
+
+    Route::get('/users', UsersIndex::class)->name('users.index');
+    Route::get('/users/create', UsersCreate::class)->name('users.create');
+    Route::get('/users/{user}/edit', UsersEdit::class)->name('users.edit');
 });
 
 require __DIR__.'/auth.php';
