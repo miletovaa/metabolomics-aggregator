@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Samples;
 
+use App\Models\OptionList;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\User;
@@ -13,7 +14,7 @@ class Create extends Component
 {
     public string $labSampleId = '';
     public string $externalId = '';
-    public string $matrixGroup = '';
+    public string $matrixName = '';
     public string $group = '';
     public string $subgroup = '';
     public string $dateReceived = '';
@@ -30,6 +31,8 @@ class Create extends Component
 
     public function updatedGroup(): void
     {
+        // A subgroup can apply to more than one group, but not every group — reset it so a
+        // stale selection that doesn't fit the new group can't slip through.
         $this->subgroup = '';
         $this->typeDetails = [];
     }
@@ -43,7 +46,7 @@ class Create extends Component
         $sample = Sample::create([
             'lab_sample_id' => $this->labSampleId ?: null,
             'external_id' => $this->externalId ?: null,
-            'matrix_group' => $this->matrixGroup ?: null,
+            'matrix_name' => $this->matrixName ?: null,
             'sample_group' => $this->group,
             'sample_subgroup' => $this->subgroup ?: null,
             'date_received' => $this->dateReceived ?: null,
@@ -88,14 +91,10 @@ class Create extends Component
     protected function rules(): array
     {
         return [
-            'group' => ['required', 'in:' . implode(',', array_keys(Sample::GROUPS))],
-            'subgroup' => ['nullable', function ($attribute, $value, $fail) {
-                if ($value !== '' && ! isset(Sample::SUBGROUPS[$this->group][$value])) {
-                    $fail('Please select a valid subgroup for the chosen group.');
-                }
-            }],
+            'group' => ['required', 'in:' . implode(',', array_keys(OptionList::optionsFor('sample_groups')))],
+            'subgroup' => ['nullable', 'in:' . implode(',', array_keys(OptionList::subOptionsFor('sample_subgroups', $this->group)))],
             'dateReceived' => ['nullable', 'date'],
-            'storageCondition' => ['nullable', 'in:' . implode(',', array_keys(Sample::STORAGE_CONDITIONS))],
+            'storageCondition' => ['nullable', 'in:' . implode(',', array_keys(OptionList::optionsFor('storage_conditions')))],
             'responsibleAnalystId' => ['nullable', 'exists:users,id'],
             'projectId' => ['nullable', 'exists:projects,id'],
         ];
@@ -103,10 +102,33 @@ class Create extends Component
 
     public function render()
     {
-        return view('livewire.samples.create', [
-            'users' => User::orderBy('name')->get(['id', 'name']),
-            'projects' => Project::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name']),
-            'subgroupOptions' => Sample::SUBGROUPS[$this->group] ?? [],
-        ])->layout('layouts.app');
+        return view('livewire.samples.create', array_merge(
+            [
+                'users' => User::orderBy('name')->get(['id', 'name']),
+                'projects' => Project::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name']),
+            ],
+            $this->optionLists(),
+        ))->layout('layouts.app');
+    }
+
+    protected function optionLists(): array
+    {
+        return [
+            'groups' => OptionList::optionsFor('sample_groups'),
+            'subgroupOptions' => OptionList::subOptionsFor('sample_subgroups', $this->group),
+            'storageConditions' => OptionList::optionsFor('storage_conditions'),
+            'storageConditionDetailsOptions' => OptionList::optionsFor('storage_condition_details'),
+            'purposesOfAnalysis' => OptionList::optionsFor('purposes_of_analysis'),
+            'plannedAnalyses' => OptionList::optionsFor('planned_analyses'),
+            'statusOptions' => OptionList::optionsFor('status_options'),
+            'productionTypes' => OptionList::optionsFor('production_types'),
+            'sourceOfWaterOptions' => OptionList::optionsFor('source_of_water'),
+            'partOfPlantOptions' => OptionList::optionsFor('part_of_plant'),
+            'plantProducerOptions' => OptionList::optionsFor('plant_producer'),
+            'plantProcessingTypes' => OptionList::optionsFor('plant_processing_types'),
+            'partOfAnimalOptions' => OptionList::optionsFor('part_of_animal'),
+            'animalProcessingTypes' => OptionList::optionsFor('animal_processing_types'),
+            'animalFeedTypes' => OptionList::optionsFor('animal_feed_types'),
+        ];
     }
 }

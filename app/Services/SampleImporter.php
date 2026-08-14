@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\OptionList;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\User;
@@ -12,51 +13,57 @@ class SampleImporter
 {
     public const MULTI_VALUE_DELIMITER = ',';
 
-    /**
-     * Type-details fields per sample_group, mirroring the fields on the sample
-     * create/edit form (resources/views/livewire/samples/_form.blade.php).
-     */
-    private const TYPE_DETAIL_FIELDS = [
-        'plant' => [
-            'latin_name' => null,
-            'part_of_plant' => Sample::PART_OF_PLANT,
-            'harvest_year' => null,
-            'status' => Sample::STATUS_OPTIONS,
-            'producer' => Sample::PLANT_PRODUCER,
-            'production_type' => Sample::PRODUCTION_TYPES,
-            'declared_country_of_origin' => null,
-            'country_of_origin_of_raw_material' => null,
-            'region_of_origin' => null,
-            'irrigation' => ['yes' => 'Yes', 'no' => 'No'],
-            'source_of_water' => Sample::SOURCE_OF_WATER,
-            'processing_type' => Sample::PLANT_PROCESSING_TYPES,
-        ],
-        'animal' => [
-            'common_name' => null,
-            'latin_name' => null,
-            'part_of_animal' => Sample::PART_OF_ANIMAL,
-            'status' => Sample::STATUS_OPTIONS,
-            'producer' => Sample::STATUS_OPTIONS,
-            'production_type' => Sample::PRODUCTION_TYPES,
-            'country_of_origin' => null,
-            'region_of_origin' => null,
-            'source_of_drinking_water' => Sample::SOURCE_OF_WATER,
-            'processing_type' => Sample::ANIMAL_PROCESSING_TYPES,
-            'feed' => Sample::ANIMAL_FEED_TYPES,
-        ],
-    ];
-
     private const MULTI_VALUE_FIELDS = ['feed'];
 
     /** Fields compared, verbatim, to decide whether an imported row duplicates an existing sample. */
     private const DUPLICATE_SCALAR_FIELDS = [
-        'lab_sample_id', 'external_id', 'matrix_group', 'sample_group', 'sample_subgroup',
+        'lab_sample_id', 'external_id', 'matrix_name', 'sample_group', 'sample_subgroup',
         'storage_condition', 'responsible_analyst_id', 'project_id', 'note',
     ];
 
     private const DUPLICATE_ARRAY_FIELDS = [
         'storage_condition_details', 'purpose_of_analysis', 'planned_analysis', 'type_details',
     ];
+
+    /**
+     * Type-details fields per sample_group, mirroring the fields on the sample
+     * create/edit form (resources/views/livewire/samples/_form.blade.php). Options are
+     * `null` for free-text fields, or an [key => label] array for enum fields — resolved
+     * live from OptionList so admin-edited predefined values are always current.
+     */
+    private function typeDetailFields(): array
+    {
+        return [
+            'plant' => [
+                'latin_name' => null,
+                'part_of_plant' => OptionList::optionsFor('part_of_plant'),
+                'harvest_year' => null,
+                'status' => OptionList::optionsFor('status_options'),
+                'producer' => OptionList::optionsFor('plant_producer'),
+                'production_type' => OptionList::optionsFor('production_types'),
+                'declared_country_of_origin' => null,
+                'country_of_origin_of_raw_material' => null,
+                'region_of_origin' => null,
+                'irrigation' => ['yes' => 'Yes', 'no' => 'No'],
+                'source_of_water' => OptionList::optionsFor('source_of_water'),
+                'processing_type' => OptionList::optionsFor('plant_processing_types'),
+            ],
+            'animal' => [
+                'common_name' => null,
+                'latin_name' => null,
+                'breed' => null,
+                'part_of_animal' => OptionList::optionsFor('part_of_animal'),
+                'status' => OptionList::optionsFor('status_options'),
+                'producer' => OptionList::optionsFor('status_options'),
+                'production_type' => OptionList::optionsFor('production_types'),
+                'country_of_origin' => null,
+                'region_of_origin' => null,
+                'source_of_drinking_water' => OptionList::optionsFor('source_of_water'),
+                'processing_type' => OptionList::optionsFor('animal_processing_types'),
+                'feed' => OptionList::optionsFor('animal_feed_types'),
+            ],
+        ];
+    }
 
     /**
      * Import rows produced by SamplesImport (one assoc array per spreadsheet row,
@@ -226,21 +233,24 @@ class SampleImporter
 
         $attributes['lab_sample_id'] = $data['lab_sample_id'] ?? null;
         $attributes['external_id'] = $data['external_id'] ?? null;
-        $attributes['matrix_group'] = $data['matrix_group'] ?? null;
+        $attributes['matrix_name'] = $data['matrix_name'] ?? null;
         $attributes['note'] = $data['note'] ?? null;
 
+        $groups = OptionList::optionsFor('sample_groups');
         $group = $data['sample_group'] ?? null;
         if ($group === null) {
             $errors[] = 'sample_group is required.';
-        } elseif (! isset(Sample::GROUPS[$group])) {
-            $errors[] = "sample_group '{$group}' is not valid. Valid options: " . implode(', ', array_keys(Sample::GROUPS)) . '.';
+        } elseif (! isset($groups[$group])) {
+            $errors[] = "sample_group '{$group}' is not valid. Valid options: " . implode(', ', array_keys($groups)) . '.';
         } else {
             $attributes['sample_group'] = $group;
         }
 
+        // A subgroup can apply to more than one sample_group, but not every one — validated
+        // against the specific set relevant to this row's group.
         $subgroup = $data['sample_subgroup'] ?? null;
         if ($subgroup !== null) {
-            $subgroupOptions = isset($attributes['sample_group']) ? (Sample::SUBGROUPS[$attributes['sample_group']] ?? []) : [];
+            $subgroupOptions = isset($attributes['sample_group']) ? OptionList::subOptionsFor('sample_subgroups', $attributes['sample_group']) : [];
             if (! isset($subgroupOptions[$subgroup])) {
                 $errors[] = $subgroupOptions === []
                     ? "sample_subgroup '{$subgroup}' is not valid: sample_group '" . ($attributes['sample_group'] ?? $group) . "' has no subgroups."
@@ -259,10 +269,11 @@ class SampleImporter
             }
         }
 
+        $storageConditions = OptionList::optionsFor('storage_conditions');
         $storageCondition = $data['storage_condition'] ?? null;
         if ($storageCondition !== null) {
-            if (! isset(Sample::STORAGE_CONDITIONS[$storageCondition])) {
-                $errors[] = "storage_condition '{$storageCondition}' is not valid. Valid options: " . implode(', ', array_keys(Sample::STORAGE_CONDITIONS)) . '.';
+            if (! isset($storageConditions[$storageCondition])) {
+                $errors[] = "storage_condition '{$storageCondition}' is not valid. Valid options: " . implode(', ', array_keys($storageConditions)) . '.';
             } else {
                 $attributes['storage_condition'] = $storageCondition;
             }
@@ -270,7 +281,7 @@ class SampleImporter
 
         [$storageConditionDetails, $storageConditionDetailsErrors] = $this->parseMultiEnum(
             $data['storage_condition_details'] ?? null,
-            Sample::STORAGE_CONDITION_DETAILS,
+            OptionList::optionsFor('storage_condition_details'),
             'storage_condition_details',
         );
         $errors = array_merge($errors, $storageConditionDetailsErrors);
@@ -280,7 +291,7 @@ class SampleImporter
 
         [$purposeOfAnalysis, $purposeErrors] = $this->parseMultiEnum(
             $data['purpose_of_analysis'] ?? null,
-            Sample::PURPOSES_OF_ANALYSIS,
+            OptionList::optionsFor('purposes_of_analysis'),
             'purpose_of_analysis',
         );
         $errors = array_merge($errors, $purposeErrors);
@@ -290,7 +301,7 @@ class SampleImporter
 
         [$plannedAnalysis, $plannedErrors] = $this->parseMultiEnum(
             $data['planned_analysis'] ?? null,
-            Sample::PLANNED_ANALYSES,
+            OptionList::optionsFor('planned_analyses'),
             'planned_analysis',
         );
         $errors = array_merge($errors, $plannedErrors);
@@ -355,7 +366,7 @@ class SampleImporter
         $errors = [];
         $details = [];
 
-        foreach (self::TYPE_DETAIL_FIELDS[$group] as $field => $options) {
+        foreach ($this->typeDetailFields()[$group] as $field => $options) {
             $raw = $data[$field] ?? null;
             if ($raw === null) {
                 continue;

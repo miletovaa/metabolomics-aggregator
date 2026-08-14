@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Samples;
 
+use App\Models\OptionList;
 use App\Models\Project;
 use App\Models\Sample;
 use App\Models\User;
@@ -59,6 +60,8 @@ class Index extends Component
 
     public function updatedFilterGroup(): void
     {
+        // A subgroup can apply to more than one group, but not every group — reset the filter
+        // so a stale selection that doesn't fit the new group can't linger.
         $this->filterSubgroup = '';
         $this->resetPage();
     }
@@ -124,7 +127,7 @@ class Index extends Component
                 $query->where(function ($q) use ($search) {
                     $q->whereRaw('LOWER(lab_sample_id) LIKE ?', ["%{$search}%"])
                         ->orWhereRaw('LOWER(external_id) LIKE ?', ["%{$search}%"])
-                        ->orWhereRaw('LOWER(matrix_group) LIKE ?', ["%{$search}%"]);
+                        ->orWhereRaw('LOWER(matrix_name) LIKE ?', ["%{$search}%"]);
                 });
             })
             ->when($this->filterProjectId !== '', fn ($q) => $q->where('project_id', $this->filterProjectId))
@@ -161,9 +164,9 @@ class Index extends Component
             'samples' => $samples,
             'projects' => Project::visibleTo($user)->orderBy('name')->get(['id', 'name']),
             'analysts' => User::orderBy('name')->get(['id', 'name']),
-            'groups' => Sample::GROUPS,
-            'subgroupOptions' => Sample::SUBGROUPS[$this->filterGroup] ?? [],
-            'storageConditions' => Sample::STORAGE_CONDITIONS,
+            'groups' => OptionList::optionsFor('sample_groups'),
+            'subgroupOptions' => OptionList::subOptionsFor('sample_subgroups', $this->filterGroup),
+            'storageConditions' => OptionList::optionsFor('storage_conditions'),
             'activeFilterCount' => $activeFilterCount,
         ])->layout('layouts.app');
     }

@@ -25,7 +25,7 @@ class UpdateSampleRequest extends FormRequest
         return [
             'lab_sample_id' => ['nullable', 'string', 'max:255'],
             'external_id' => ['nullable', 'string', 'max:255'],
-            'matrix_group' => ['nullable', 'string', 'max:255'],
+            'matrix_name' => ['nullable', 'string', 'max:255'],
             'sample_group' => ['required', 'string', 'max:50'],
             'sample_subgroup' => ['nullable', 'string', 'max:50'],
             'date_received' => ['nullable', 'date'],

@@ -17,8 +17,9 @@
             <input wire:model="externalId" class="{{ $inputClass }}" placeholder="Collaborator / source ID">
         </div>
         <div>
-            <label class="{{ $labelClass }}">Matrix group</label>
-            <input wire:model="matrixGroup" class="{{ $inputClass }}" placeholder="Free-text matrix descriptor">
+            <label class="{{ $labelClass }}">Date received</label>
+            <input type="date" wire:model="dateReceived" class="{{ $inputClass }}">
+            @error('dateReceived') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
     </div>
 
@@ -27,7 +28,7 @@
             <label class="{{ $labelClass }}">Group <span class="text-red-500">*</span></label>
             <select wire:model.live="group" class="{{ $inputClass }}">
                 <option value="">Select group…</option>
-                @foreach(\App\Models\Sample::GROUPS as $key => $label)
+                @foreach($groups as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>
@@ -35,7 +36,7 @@
         </div>
         <div>
             <label class="{{ $labelClass }}">Subgroup</label>
-            <select wire:model="subgroup" class="{{ $inputClass }}" @disabled(!$group || empty($subgroupOptions))>
+            <select wire:model="subgroup" class="{{ $inputClass }}" @disabled(!$group)>
                 <option value="">Select subgroup…</option>
                 @foreach($subgroupOptions as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
@@ -44,9 +45,9 @@
             @error('subgroup') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
         <div>
-            <label class="{{ $labelClass }}">Date received</label>
-            <input type="date" wire:model="dateReceived" class="{{ $inputClass }}">
-            @error('dateReceived') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+            <label class="{{ $labelClass }}">Matrix name</label>
+            <input wire:model="matrixName" class="{{ $inputClass }}" placeholder="e.g. Seabream fillet">
+            <p class="text-xs text-gray-500 mt-1">What exactly is in the sample — e.g. "Seabream fillet" or "Edible part of Mediterranean mussel".</p>
         </div>
     </div>
 </div>
@@ -66,7 +67,7 @@
                 <label class="{{ $labelClass }}">Part of plant</label>
                 <select wire:model="typeDetails.part_of_plant" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PART_OF_PLANT as $key => $label)
+                    @foreach($partOfPlantOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -79,7 +80,7 @@
                 <label class="{{ $labelClass }}">Status</label>
                 <select wire:model="typeDetails.status" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                    @foreach($statusOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -88,7 +89,7 @@
                 <label class="{{ $labelClass }}">Producer</label>
                 <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PLANT_PRODUCER as $key => $label)
+                    @foreach($plantProducerOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -97,7 +98,7 @@
                 <label class="{{ $labelClass }}">Production type</label>
                 <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
+                    @foreach($productionTypes as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -126,7 +127,7 @@
                 <label class="{{ $labelClass }}">Source of water</label>
                 <select wire:model="typeDetails.source_of_water" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
+                    @foreach($sourceOfWaterOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -135,7 +136,7 @@
                 <label class="{{ $labelClass }}">Processing type</label>
                 <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PLANT_PROCESSING_TYPES as $key => $label)
+                    @foreach($plantProcessingTypes as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -156,10 +157,14 @@
                 <input wire:model="typeDetails.latin_name" class="{{ $inputClass }}">
             </div>
             <div>
+                <label class="{{ $labelClass }}">Breed</label>
+                <input wire:model="typeDetails.breed" class="{{ $inputClass }}">
+            </div>
+            <div>
                 <label class="{{ $labelClass }}">Part of animal</label>
                 <select wire:model="typeDetails.part_of_animal" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PART_OF_ANIMAL as $key => $label)
+                    @foreach($partOfAnimalOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -168,7 +173,7 @@
                 <label class="{{ $labelClass }}">Status</label>
                 <select wire:model="typeDetails.status" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                    @foreach($statusOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -177,7 +182,7 @@
                 <label class="{{ $labelClass }}">Producer</label>
                 <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::STATUS_OPTIONS as $key => $label)
+                    @foreach($statusOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -186,7 +191,7 @@
                 <label class="{{ $labelClass }}">Production type</label>
                 <select wire:model="typeDetails.production_type" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::PRODUCTION_TYPES as $key => $label)
+                    @foreach($productionTypes as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -203,7 +208,7 @@
                 <label class="{{ $labelClass }}">Source of drinking water</label>
                 <select wire:model="typeDetails.source_of_drinking_water" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::SOURCE_OF_WATER as $key => $label)
+                    @foreach($sourceOfWaterOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -212,7 +217,7 @@
                 <label class="{{ $labelClass }}">Processing type</label>
                 <select wire:model="typeDetails.processing_type" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach(\App\Models\Sample::ANIMAL_PROCESSING_TYPES as $key => $label)
+                    @foreach($animalProcessingTypes as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>
@@ -220,7 +225,7 @@
             <div class="md:col-span-3">
                 <label class="{{ $labelClass }}">Feed</label>
                 <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-                    @foreach(\App\Models\Sample::ANIMAL_FEED_TYPES as $key => $label)
+                    @foreach($animalFeedTypes as $key => $label)
                         <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                             <input type="checkbox" wire:model="typeDetails.feed" value="{{ $key }}" class="rounded border-gray-300">
                             {{ $label }}
@@ -245,7 +250,7 @@
         <label class="{{ $labelClass }}">Storage conditions</label>
         <select wire:model="storageCondition" class="{{ $inputClass }} md:w-1/2">
             <option value="">Select storage condition…</option>
-            @foreach(\App\Models\Sample::STORAGE_CONDITIONS as $key => $label)
+            @foreach($storageConditions as $key => $label)
                 <option value="{{ $key }}">{{ $label }}</option>
             @endforeach
         </select>
@@ -254,7 +259,7 @@
     <div>
         <label class="{{ $labelClass }}">Storage condition details</label>
         <div class="flex flex-wrap gap-x-6 gap-y-2">
-            @foreach(\App\Models\Sample::STORAGE_CONDITION_DETAILS as $key => $label)
+            @foreach($storageConditionDetailsOptions as $key => $label)
                 <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model="storageConditionDetails" value="{{ $key }}" class="rounded border-gray-300">
                     {{ $label }}
@@ -348,7 +353,7 @@
     <div>
         <label class="{{ $labelClass }}">Purpose of analysis</label>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-            @foreach(\App\Models\Sample::PURPOSES_OF_ANALYSIS as $key => $label)
+            @foreach($purposesOfAnalysis as $key => $label)
                 <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model="purposeOfAnalysis" value="{{ $key }}" class="rounded border-gray-300">
                     {{ $label }}
@@ -360,7 +365,7 @@
     <div>
         <label class="{{ $labelClass }}">Planned analysis</label>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-x-4 gap-y-2">
-            @foreach(\App\Models\Sample::PLANNED_ANALYSES as $key => $label)
+            @foreach($plannedAnalyses as $key => $label)
                 <label class="inline-flex items-center gap-2 text-sm text-gray-700">
                     <input type="checkbox" wire:model="plannedAnalysis" value="{{ $key }}" class="rounded border-gray-300">
                     {{ $label }}

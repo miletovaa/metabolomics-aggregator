@@ -24,7 +24,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0001',
                 'external_id' => 'EXT-APL-01',
-                'matrix_group' => 'Fruit pulp',
+                'matrix_name' => 'Fruit pulp',
                 'sample_group' => 'plant',
                 'sample_subgroup' => null,
                 'date_received' => '2026-04-02',
@@ -61,7 +61,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0002',
                 'external_id' => 'EXT-BEEF-01',
-                'matrix_group' => 'Muscle tissue',
+                'matrix_name' => 'Muscle tissue',
                 'sample_group' => 'animal',
                 'sample_subgroup' => null,
                 'date_received' => '2026-04-05',
@@ -98,7 +98,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0003',
                 'external_id' => 'EXT-MILK-01',
-                'matrix_group' => 'Raw milk',
+                'matrix_name' => 'Raw milk',
                 'sample_group' => 'animal',
                 'sample_subgroup' => null,
                 'date_received' => '2026-04-06',
@@ -136,7 +136,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0006',
                 'external_id' => 'EXT-BLD-01',
-                'matrix_group' => 'Whole blood',
+                'matrix_name' => 'Whole blood',
                 'sample_group' => 'human_medical',
                 'sample_subgroup' => 'blood',
                 'date_received' => '2026-04-10',
@@ -158,7 +158,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0007',
                 'external_id' => 'EXT-HERB-01',
-                'matrix_group' => 'Dried leaves',
+                'matrix_name' => 'Dried leaves',
                 'sample_group' => 'plant',
                 'sample_subgroup' => null,
                 'date_received' => '2026-04-11',
@@ -189,7 +189,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0008',
                 'external_id' => 'EXT-FISH-01',
-                'matrix_group' => 'Fillet',
+                'matrix_name' => 'Fillet',
                 'sample_group' => 'animal',
                 'sample_subgroup' => null,
                 'date_received' => '2026-04-12',
@@ -215,7 +215,7 @@ class SampleSeeder extends Seeder
             [
                 'lab_sample_id' => 'LAB-0009',
                 'external_id' => 'EXT-OIL-01',
-                'matrix_group' => 'Cold-pressed oil',
+                'matrix_name' => 'Cold-pressed oil',
                 'sample_group' => 'food',
                 'sample_subgroup' => 'fats_oils',
                 'date_received' => '2026-04-13',

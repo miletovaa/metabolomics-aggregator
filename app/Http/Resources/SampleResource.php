@@ -19,7 +19,7 @@ class SampleResource extends JsonResource
             'project_id' => $this->project_id,
             'lab_sample_id' => $this->lab_sample_id,
             'external_id' => $this->external_id,
-            'matrix_group' => $this->matrix_group,
+            'matrix_name' => $this->matrix_name,
             'sample_group' => $this->sample_group,
             'sample_subgroup' => $this->sample_subgroup,
             'date_received' => $this->date_received,

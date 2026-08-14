@@ -26,13 +26,13 @@ class ExperimentRecordResource extends JsonResource
             'note' => $this->note,
             'details' => $this->details,
             // Flattened from the sample join, mirroring
-            // `SELECT er.*, s.sample_group, s.sample_subgroup, s.matrix_group, s.storage_condition`
+            // `SELECT er.*, s.sample_group, s.sample_subgroup, s.matrix_name, s.storage_condition`
             // so the client never needs a second merge step. Both `sample` and
             // `experiment` are always eager-loaded by the controllers that
             // return this resource, so plain access here never lazy-loads.
             'sample_group' => $this->sample?->sample_group,
             'sample_subgroup' => $this->sample?->sample_subgroup,
-            'matrix_group' => $this->sample?->matrix_group,
+            'matrix_name' => $this->sample?->matrix_name,
             'storage_condition' => $this->sample?->storage_condition,
             'project_id' => $this->sample?->project_id ?? $this->experiment?->project_id,
             'created_at' => $this->created_at,
