@@ -168,6 +168,11 @@ class OptionListSeeder extends Seeder
             'brain' => 'Brain (organ)',
         ]);
 
+        $this->flat('animal_producer', 'Animal producer', [
+            'authentic' => 'Authentic',
+            'market' => 'Market',
+        ]);
+
         $this->flat('animal_processing_types', 'Animal processing types', [
             'raw' => 'Raw',
             'fresh' => 'Fresh',

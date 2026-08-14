@@ -182,7 +182,7 @@
                 <label class="{{ $labelClass }}">Producer</label>
                 <select wire:model="typeDetails.producer" class="{{ $inputClass }}">
                     <option value="">Select…</option>
-                    @foreach($statusOptions as $key => $label)
+                    @foreach($animalProducerOptions as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>

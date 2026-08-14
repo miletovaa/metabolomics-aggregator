@@ -54,7 +54,7 @@ class SampleImporter
                 'breed' => null,
                 'part_of_animal' => OptionList::optionsFor('part_of_animal'),
                 'status' => OptionList::optionsFor('status_options'),
-                'producer' => OptionList::optionsFor('status_options'),
+                'producer' => OptionList::optionsFor('animal_producer'),
                 'production_type' => OptionList::optionsFor('production_types'),
                 'country_of_origin' => null,
                 'region_of_origin' => null,

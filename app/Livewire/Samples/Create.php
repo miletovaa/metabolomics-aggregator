@@ -125,6 +125,7 @@ class Create extends Component
             'sourceOfWaterOptions' => OptionList::optionsFor('source_of_water'),
             'partOfPlantOptions' => OptionList::optionsFor('part_of_plant'),
             'plantProducerOptions' => OptionList::optionsFor('plant_producer'),
+            'animalProducerOptions' => OptionList::optionsFor('animal_producer'),
             'plantProcessingTypes' => OptionList::optionsFor('plant_processing_types'),
             'partOfAnimalOptions' => OptionList::optionsFor('part_of_animal'),
             'animalProcessingTypes' => OptionList::optionsFor('animal_processing_types'),

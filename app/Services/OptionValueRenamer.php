@@ -19,7 +19,7 @@ use Illuminate\Database\Eloquent\Model;
  * column, a JSON array column, a single key inside a JSON object column, or an array
  * nested inside that JSON object. A few JSON keys are also shared by two *different*
  * lists depending on another column on the same row (e.g. type_details.producer holds
- * plant_producer values when sample_group=plant, but status_options values when
+ * plant_producer values when sample_group=plant, but animal_producer values when
  * sample_group=animal) — the optional `where` scopes the locator to just those rows.
  */
 class OptionValueRenamer
@@ -45,7 +45,6 @@ class OptionValueRenamer
         ],
         'status_options' => [
             ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'status'],
-            ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'producer', 'where' => ['sample_group' => 'animal']],
         ],
         'production_types' => [
             ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'production_type'],
@@ -59,6 +58,9 @@ class OptionValueRenamer
         ],
         'plant_producer' => [
             ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'producer', 'where' => ['sample_group' => 'plant']],
+        ],
+        'animal_producer' => [
+            ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'producer', 'where' => ['sample_group' => 'animal']],
         ],
         'plant_processing_types' => [
             ['model' => Sample::class, 'column' => 'type_details', 'shape' => 'json_object_key', 'json_key' => 'processing_type', 'where' => ['sample_group' => 'plant']],
