@@ -31,7 +31,7 @@ class Index extends Component
 
     public function deleteSampling(int $id): void
     {
-        $sampling = Sampling::visibleTo(Auth::user())->findOrFail($id);
+        $sampling = Sampling::visibleTo(Auth::user(), 'delete')->findOrFail($id);
         $name = $sampling->sample?->lab_sample_id ?: "#{$sampling->id}";
         $sampling->delete();
         ActivityLogger::deleteSampling($name, $id);

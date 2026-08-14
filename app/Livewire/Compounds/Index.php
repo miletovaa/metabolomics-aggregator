@@ -6,6 +6,7 @@ use App\Jobs\SyncCompoundsJob;
 use App\Models\Compound;
 use App\Models\Taxonomy;
 use App\Services\ActivityLogger;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Livewire\Component;
@@ -55,6 +56,8 @@ class Index extends Component
 
     public function mount(): void
     {
+        abort_unless(Auth::user()->hasPermission('compounds', 'view'), 403);
+
         $progress = Cache::get(SyncCompoundsJob::cacheKey());
         if ($progress && in_array($progress['status'] ?? '', ['running', 'done', 'error'], true)) {
             $this->applyProgressPayload($progress);
@@ -96,6 +99,8 @@ class Index extends Component
 
     public function sync(): void
     {
+        abort_unless(Auth::user()->hasPermission('compounds', 'edit'), 403);
+
         if ($this->syncStatus === 'running') {
             return;
         }
@@ -203,6 +208,8 @@ class Index extends Component
 
     public function updateDescription(int $id, string $value): void
     {
+        abort_unless(Auth::user()->hasPermission('compounds', 'edit'), 403);
+
         $value = trim($value);
         $compound = Compound::findOrFail($id);
         $old = $compound->description;

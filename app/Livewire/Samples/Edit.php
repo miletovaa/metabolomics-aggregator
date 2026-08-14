@@ -33,7 +33,7 @@ class Edit extends Component
 
     public function mount(Sample $sample): void
     {
-        abort_unless(Sample::visibleTo(Auth::user())->whereKey($sample->id)->exists(), 404);
+        abort_unless(Sample::visibleTo(Auth::user(), 'edit')->whereKey($sample->id)->exists(), 404);
 
         $this->sample = $sample;
 

@@ -43,14 +43,16 @@
                 @forelse($values as $value)
                     <tr wire:key="value-{{ $value->id }}">
                         <td class="p-3">
-                            <div class="flex items-center gap-1">
-                                <button wire:click="moveValue({{ $value->id }}, -1)" class="text-gray-400 hover:text-gray-700" title="Move up">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
-                                </button>
-                                <button wire:click="moveValue({{ $value->id }}, 1)" class="text-gray-400 hover:text-gray-700" title="Move down">
-                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
-                                </button>
-                            </div>
+                            @if($canEdit)
+                                <div class="flex items-center gap-1">
+                                    <button wire:click="moveValue({{ $value->id }}, -1)" class="text-gray-400 hover:text-gray-700" title="Move up">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"/></svg>
+                                    </button>
+                                    <button wire:click="moveValue({{ $value->id }}, 1)" class="text-gray-400 hover:text-gray-700" title="Move down">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                                    </button>
+                                </div>
+                            @endif
                         </td>
 
                         @if($editingValueId === $value->id)
@@ -83,20 +85,25 @@
                                             type="checkbox"
                                             wire:click="toggleScope({{ $value->id }}, {{ $parent->id }})"
                                             @checked(in_array($parent->id, $scopesByValue[$value->id] ?? []))
+                                            @disabled(!$canEdit)
                                             class="rounded border-gray-300"
                                         >
                                     </td>
                                 @endforeach
                             @endif
                             <td class="p-3 text-right">
-                                <button wire:click="startEdit({{ $value->id }})" class="text-gray-500 hover:text-gray-800 text-xs font-medium mr-3">Edit</button>
-                                <button
-                                    wire:click="deleteValue({{ $value->id }})"
-                                    wire:confirm="Delete \"{{ $value->label }}\"? It is currently used by {{ $this->usageCountFor($value) }} record(s)."
-                                    class="text-red-500 hover:text-red-700 text-xs font-medium"
-                                >
-                                    Delete
-                                </button>
+                                @if($canEdit)
+                                    <button wire:click="startEdit({{ $value->id }})" class="text-gray-500 hover:text-gray-800 text-xs font-medium mr-3">Edit</button>
+                                @endif
+                                @if($canDelete)
+                                    <button
+                                        wire:click="deleteValue({{ $value->id }})"
+                                        wire:confirm="Delete \"{{ $value->label }}\"? It is currently used by {{ $this->usageCountFor($value) }} record(s)."
+                                        class="text-red-500 hover:text-red-700 text-xs font-medium"
+                                    >
+                                        Delete
+                                    </button>
+                                @endif
                             </td>
                         @endif
                     </tr>
@@ -111,32 +118,34 @@
         </table>
     </div>
 
-    <div class="mt-4 bg-white shadow rounded-xl p-4">
-        <p class="text-xs text-gray-500 mb-2">Add a new value — the key is generated automatically from the label.</p>
-        <div class="flex items-start gap-3">
-            <div class="flex-1">
-                <input
-                    wire:model="newLabel"
-                    wire:keydown.enter="addValue"
-                    type="text"
-                    placeholder="e.g. Styrofoam box with ice"
-                    class="w-full text-sm border px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
-                >
-                @if($optionList->is_nested)
-                    <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
-                        @foreach($parentValues as $parent)
-                            <label class="inline-flex items-center gap-1.5 text-xs text-gray-700">
-                                <input type="checkbox" wire:model="newValueScopes" value="{{ $parent->id }}" class="rounded border-gray-300">
-                                {{ $parent->label }}
-                            </label>
-                        @endforeach
-                    </div>
-                @endif
-                @if($newLabelError)
-                    <p class="text-xs text-red-500 mt-1">{{ $newLabelError }}</p>
-                @endif
+    @if($canEdit)
+        <div class="mt-4 bg-white shadow rounded-xl p-4">
+            <p class="text-xs text-gray-500 mb-2">Add a new value — the key is generated automatically from the label.</p>
+            <div class="flex items-start gap-3">
+                <div class="flex-1">
+                    <input
+                        wire:model="newLabel"
+                        wire:keydown.enter="addValue"
+                        type="text"
+                        placeholder="e.g. Styrofoam box with ice"
+                        class="w-full text-sm border px-3 py-2 rounded-lg focus:outline-none focus:ring focus:ring-blue-200"
+                    >
+                    @if($optionList->is_nested)
+                        <div class="flex flex-wrap gap-x-4 gap-y-1 mt-2">
+                            @foreach($parentValues as $parent)
+                                <label class="inline-flex items-center gap-1.5 text-xs text-gray-700">
+                                    <input type="checkbox" wire:model="newValueScopes" value="{{ $parent->id }}" class="rounded border-gray-300">
+                                    {{ $parent->label }}
+                                </label>
+                            @endforeach
+                        </div>
+                    @endif
+                    @if($newLabelError)
+                        <p class="text-xs text-red-500 mt-1">{{ $newLabelError }}</p>
+                    @endif
+                </div>
+                <button wire:click="addValue" class="bg-black text-white px-4 py-2 rounded-lg text-sm shrink-0">Add</button>
             </div>
-            <button wire:click="addValue" class="bg-black text-white px-4 py-2 rounded-lg text-sm shrink-0">Add</button>
         </div>
-    </div>
+    @endif
 </div>

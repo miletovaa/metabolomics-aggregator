@@ -3,6 +3,7 @@
 namespace App\Livewire\ActivityLog;
 
 use App\Models\ActivityLog;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 
 class Index extends Component
@@ -13,6 +14,11 @@ class Index extends Component
     public int    $perPage       = 25;
     public int    $page          = 1;
     public int    $lastPage      = 1;
+
+    public function mount(): void
+    {
+        abort_unless(Auth::user()->hasPermission('history', 'view'), 403);
+    }
 
     public function updated(string $property): void
     {

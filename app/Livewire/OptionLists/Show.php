@@ -28,7 +28,7 @@ class Show extends Component
 
     public function mount(OptionList $optionList): void
     {
-        abort_unless(Auth::user()->can('manage-option-lists'), 403);
+        abort_unless(Auth::user()->hasPermission('options', 'view'), 403);
 
         $this->optionList = $optionList;
     }
@@ -40,6 +40,8 @@ class Show extends Component
 
     public function addValue(): void
     {
+        abort_unless(Auth::user()->hasPermission('options', 'edit'), 403);
+
         $this->newLabelError = '';
         $label = trim($this->newLabel);
 
@@ -87,6 +89,8 @@ class Show extends Component
 
     public function toggleScope(int $valueId, int $groupValueId): void
     {
+        abort_unless(Auth::user()->hasPermission('options', 'edit'), 403);
+
         $value = OptionValue::findOrFail($valueId);
 
         if ($value->scopedTo()->where('scope_value_id', $groupValueId)->exists()) {
@@ -115,6 +119,8 @@ class Show extends Component
 
     public function saveEdit(): void
     {
+        abort_unless(Auth::user()->hasPermission('options', 'edit'), 403);
+
         $this->editingLabelError = '';
         $label = trim($this->editingLabel);
 
@@ -156,6 +162,8 @@ class Show extends Component
 
     public function deleteValue(int $valueId): void
     {
+        abort_unless(Auth::user()->hasPermission('options', 'delete'), 403);
+
         $value = OptionValue::findOrFail($valueId);
         $label = $value->label;
         $value->delete();
@@ -169,6 +177,8 @@ class Show extends Component
 
     public function moveValue(int $valueId, int $direction): void
     {
+        abort_unless(Auth::user()->hasPermission('options', 'edit'), 403);
+
         $value = OptionValue::findOrFail($valueId);
 
         $sibling = OptionValue::where('option_list_id', $value->option_list_id)
@@ -216,6 +226,8 @@ class Show extends Component
             'values' => $values,
             'parentValues' => $parentValues,
             'scopesByValue' => $scopesByValue,
+            'canEdit' => Auth::user()->hasPermission('options', 'edit'),
+            'canDelete' => Auth::user()->hasPermission('options', 'delete'),
         ])->layout('layouts.app');
     }
 }

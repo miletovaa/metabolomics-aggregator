@@ -42,18 +42,22 @@ new class extends Component
                     <x-nav-link :href="route('samplings.index')" :active="request()->routeIs('samplings.index')" wire:navigate>
                         {{ __('Samplings') }}
                     </x-nav-link>
-                    <x-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
-                        {{ __('Compounds') }}
-                    </x-nav-link>
+                    @if(auth()->user()->hasPermission('compounds', 'view'))
+                        <x-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
+                            {{ __('Compounds') }}
+                        </x-nav-link>
+                    @endif
 
-                    <x-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate title="{{ __('History') }}">
-                        <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
-                        </svg>
-                        <span class="sr-only">{{ __('History') }}</span>
-                    </x-nav-link>
+                    @if(auth()->user()->hasPermission('history', 'view'))
+                        <x-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate title="{{ __('History') }}">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                            </svg>
+                            <span class="sr-only">{{ __('History') }}</span>
+                        </x-nav-link>
+                    @endif
 
-                    @can('manage-option-lists')
+                    @if(auth()->user()->hasPermission('options', 'view'))
                         <x-nav-link :href="route('option-lists.index')" :active="request()->routeIs('option-lists.*')" wire:navigate title="{{ __('Predefined Values') }}">
                             <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -61,7 +65,16 @@ new class extends Component
                             </svg>
                             <span class="sr-only">{{ __('Predefined Values') }}</span>
                         </x-nav-link>
-                    @endcan
+                    @endif
+
+                    @if(auth()->user()->hasPermission('users', 'view'))
+                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate title="{{ __('Users') }}">
+                            <svg class="w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                            </svg>
+                            <span class="sr-only">{{ __('Users') }}</span>
+                        </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -125,19 +138,29 @@ new class extends Component
             <x-responsive-nav-link :href="route('samplings.index')" :active="request()->routeIs('samplings.index')" wire:navigate>
                 {{ __('Samplings') }}
             </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
-                {{ __('Compounds') }}
-            </x-responsive-nav-link>
+            @if(auth()->user()->hasPermission('compounds', 'view'))
+                <x-responsive-nav-link :href="route('compounds.index')" :active="request()->routeIs('compounds.index')" wire:navigate>
+                    {{ __('Compounds') }}
+                </x-responsive-nav-link>
+            @endif
 
-            <x-responsive-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate>
-                {{ __('History') }}
-            </x-responsive-nav-link>
+            @if(auth()->user()->hasPermission('history', 'view'))
+                <x-responsive-nav-link :href="route('activity-log.index')" :active="request()->routeIs('activity-log.index')" wire:navigate>
+                    {{ __('History') }}
+                </x-responsive-nav-link>
+            @endif
 
-            @can('manage-option-lists')
+            @if(auth()->user()->hasPermission('options', 'view'))
                 <x-responsive-nav-link :href="route('option-lists.index')" :active="request()->routeIs('option-lists.*')" wire:navigate>
                     {{ __('Predefined Values') }}
                 </x-responsive-nav-link>
-            @endcan
+            @endif
+
+            @if(auth()->user()->hasPermission('users', 'view'))
+                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.*')" wire:navigate>
+                    {{ __('Users') }}
+                </x-responsive-nav-link>
+            @endif
         </div>
 
         <!-- Responsive Settings Options -->

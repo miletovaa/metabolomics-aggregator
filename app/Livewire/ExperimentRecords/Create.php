@@ -25,7 +25,7 @@ class Create extends Component
 
     public function mount(Experiment $experiment): void
     {
-        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
+        abort_unless(Experiment::visibleTo(Auth::user(), 'edit')->whereKey($experiment->id)->exists(), 404);
 
         $this->experiment = $experiment;
     }

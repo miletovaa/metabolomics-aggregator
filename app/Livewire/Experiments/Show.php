@@ -24,6 +24,8 @@ class Show extends Component
 
     public function deleteRecord(int $id): void
     {
+        abort_unless(Experiment::visibleTo(Auth::user(), 'delete')->whereKey($this->experiment->id)->exists(), 404);
+
         $record = ExperimentRecord::findOrFail($id);
         abort_unless($record->experiment_id === $this->experiment->id, 404);
 

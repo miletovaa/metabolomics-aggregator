@@ -25,7 +25,7 @@ class Edit extends Component
 
     public function mount(Sampling $sampling): void
     {
-        abort_unless(Sampling::visibleTo(Auth::user())->whereKey($sampling->id)->exists(), 404);
+        abort_unless(Sampling::visibleTo(Auth::user(), 'edit')->whereKey($sampling->id)->exists(), 404);
 
         $this->sampling = $sampling;
 

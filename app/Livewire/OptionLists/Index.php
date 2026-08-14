@@ -10,7 +10,7 @@ class Index extends Component
 {
     public function mount(): void
     {
-        abort_unless(Auth::user()->can('manage-option-lists'), 403);
+        abort_unless(Auth::user()->hasPermission('options', 'view'), 403);
     }
 
     public function render()

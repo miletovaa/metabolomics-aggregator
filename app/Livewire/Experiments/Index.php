@@ -31,7 +31,7 @@ class Index extends Component
 
     public function deleteExperiment(int $id): void
     {
-        $experiment = Experiment::visibleTo(Auth::user())->findOrFail($id);
+        $experiment = Experiment::visibleTo(Auth::user(), 'delete')->findOrFail($id);
         $name = $experiment->name;
         $experiment->delete();
         ActivityLogger::deleteExperiment($name, $id);

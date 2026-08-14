@@ -25,7 +25,7 @@ class Edit extends Component
 
     public function mount(Experiment $experiment, ExperimentRecord $record): void
     {
-        abort_unless(Experiment::visibleTo(Auth::user())->whereKey($experiment->id)->exists(), 404);
+        abort_unless(Experiment::visibleTo(Auth::user(), 'edit')->whereKey($experiment->id)->exists(), 404);
         abort_unless($record->experiment_id === $experiment->id, 404);
         // Compound-based results now live as ProjectCompound rows, managed on the scoped
         // project-compounds page — there should be no ExperimentRecord rows of these types
