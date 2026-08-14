@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Samplings;
 
+use App\Models\OptionList;
 use App\Models\Sample;
 use App\Models\Sampling;
 use App\Services\ActivityLogger;
@@ -30,8 +31,8 @@ class Create extends Component
             'gpsLat' => ['nullable', 'numeric', 'between:-90,90'],
             'gpsLon' => ['nullable', 'numeric', 'between:-180,180'],
             'altitude' => ['nullable', 'numeric'],
-            'samplingMethod' => ['nullable', 'in:' . implode(',', array_keys(Sampling::SAMPLING_METHODS))],
-            'packaging' => ['nullable', 'in:' . implode(',', array_keys(Sampling::PACKAGING_OPTIONS))],
+            'samplingMethod' => ['nullable', 'in:' . implode(',', array_keys(OptionList::optionsFor('sampling_methods')))],
+            'packaging' => ['nullable', 'in:' . implode(',', array_keys(OptionList::optionsFor('packaging_options')))],
         ]);
 
         abort_unless(Sample::visibleTo(Auth::user())->whereKey($this->sampleId)->exists(), 404);
@@ -65,6 +66,8 @@ class Create extends Component
                 ->whereDoesntHave('sampling')
                 ->orderByDesc('id')
                 ->get(['id', 'lab_sample_id', 'external_id']),
+            'samplingMethods' => OptionList::optionsFor('sampling_methods'),
+            'packagingOptions' => OptionList::optionsFor('packaging_options'),
         ])->layout('layouts.app');
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Projects;
 
+use App\Models\OptionList;
 use App\Models\Project;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
@@ -11,8 +12,6 @@ class Index extends Component
 {
     public ?string $successMessage = null;
     public ?string $errorMessage   = null;
-
-    public const STATUSES = ['active', 'completed', 'archived'];
 
     public function saveName(int $id, string $name): void
     {
@@ -39,7 +38,7 @@ class Index extends Component
 
     public function updateStatus(int $id, string $status): void
     {
-        if (! in_array($status, self::STATUSES, true)) {
+        if (! isset(OptionList::optionsFor('project_statuses')[$status])) {
             return;
         }
 
@@ -77,6 +76,7 @@ class Index extends Component
 
         return view('livewire.projects.index', [
             'projects' => $projects,
+            'statuses' => OptionList::optionsFor('project_statuses'),
         ])->layout('layouts.app');
     }
 }

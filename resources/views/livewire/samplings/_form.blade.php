@@ -43,7 +43,7 @@
             <label class="{{ $labelClass }}">Sampling method</label>
             <select wire:model="samplingMethod" class="{{ $inputClass }}">
                 <option value="">Select…</option>
-                @foreach(\App\Models\Sampling::SAMPLING_METHODS as $key => $label)
+                @foreach($samplingMethods as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>
@@ -52,7 +52,7 @@
             <label class="{{ $labelClass }}">Packaging</label>
             <select wire:model="packaging" class="{{ $inputClass }}">
                 <option value="">Select…</option>
-                @foreach(\App\Models\Sampling::PACKAGING_OPTIONS as $key => $label)
+                @foreach($packagingOptions as $key => $label)
                     <option value="{{ $key }}">{{ $label }}</option>
                 @endforeach
             </select>

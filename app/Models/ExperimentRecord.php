@@ -82,81 +82,10 @@ class ExperimentRecord extends Model
         'result_voc_gc_irms',
     ];
 
-    /** Shared isotope/fraction vocabulary used by analysis_isotopes and result_stable_isotopes. */
-    public const ANALYTES = [
-        'd18o_water' => 'δ18Owater',
-        'd18o' => 'δ18O',
-        'd2h' => 'δ2H',
-        'd13c' => 'δ13C',
-        'd13c_fat' => 'δ13Cfat',
-        'd13c_defatted' => 'δ13Cdefatted',
-        'd13c_pulp' => 'δ13Cpulp',
-        'd13c_casein' => 'δ13Ckazein',
-        'd13c_protein' => 'δ13Cprotein',
-        'd13c_sugar' => 'δ13Csugar',
-        'd13c_ethanol' => 'δ13Cethanol',
-        'd15n' => 'δ15N',
-        'd34s' => 'δ34S',
-    ];
-
-    public const PHASE_OF_SAMPLE = [
-        'solid' => 'Solid',
-        'liquid' => 'Liquid',
-        'gas' => 'Gas',
-    ];
-
-    public const DRYING_OPTIONS = [
-        'no' => 'No',
-        'freeze_drying' => 'Freeze drying',
-        'air_drying' => 'Air drying',
-        'oven_drying' => 'Oven drying',
-    ];
-
-    public const HOMOGENISATION_OPTIONS = [
-        'no' => 'No',
-        'mortar' => 'Mortar',
-        'ball_mill' => 'Ball mill',
-        'liquid_nitrogen' => 'Liquid nitrogen',
-    ];
-
+    // Binary field — not admin-editable, a Yes/No select doesn't need a predefined-values entry.
     public const YES_NO = [
         'no' => 'No',
         'yes' => 'Yes',
-    ];
-
-    public const PREPARATION_METHODS = [
-        'defatting' => 'Defatting',
-        'casein_isolation' => 'Casein (kazein) isolation',
-        'protein_extraction' => 'Protein extraction',
-        'sugar_isolation' => 'Sugar isolation',
-        'pulp_preparation' => 'Pulp preparation',
-        'gelatine_extraction' => 'Gelatine extraction',
-        'decarbonation' => 'Decarbonation',
-        'solvent_extraction_specific_compounds' => 'Solvent extraction of specific compounds',
-        'spe_cleanup' => 'SPE cleanup',
-        'derivatization' => 'Derivatization',
-        'ultrafiltration' => 'Ultrafiltration',
-        'water_extraction' => 'Water extraction',
-    ];
-
-    public const MICROWAVE_PHASE_OF_SAMPLE = [
-        'fresh' => 'Fresh',
-        'freeze_dried' => 'Freeze dried',
-        'defatted' => 'Defatted',
-    ];
-
-    public const ELEMENTS = [
-        'C' => 'Carbon (C)',
-        'H' => 'Hydrogen (H)',
-        'N' => 'Nitrogen (N)',
-        'O' => 'Oxygen (O)',
-        'S' => 'Sulfur (S)',
-    ];
-
-    public const MK_GC_MS_UNITS = [
-        'percent' => '%',
-        'mg_100g' => 'mg/100 g',
-        'mg_g_fat' => 'mg/g fat',
     ];
 
     // The details.* key holding "what was measured" for record types that can share
@@ -207,22 +136,22 @@ class ExperimentRecord extends Model
         return match ($recordType) {
             'sample_prep' => [
                 ['key' => 'amount_of_sample_g', 'label' => 'Amount of sample (g)', 'type' => 'number'],
-                ['key' => 'phase_of_sample', 'label' => 'Phase of sample', 'type' => 'select', 'options' => self::PHASE_OF_SAMPLE],
-                ['key' => 'drying', 'label' => 'Drying', 'type' => 'select', 'options' => self::DRYING_OPTIONS],
-                ['key' => 'homogenisation', 'label' => 'Homogenisation', 'type' => 'select', 'options' => self::HOMOGENISATION_OPTIONS],
+                ['key' => 'phase_of_sample', 'label' => 'Phase of sample', 'type' => 'select', 'options' => OptionList::optionsFor('phase_of_sample')],
+                ['key' => 'drying', 'label' => 'Drying', 'type' => 'select', 'options' => OptionList::optionsFor('drying_options')],
+                ['key' => 'homogenisation', 'label' => 'Homogenisation', 'type' => 'select', 'options' => OptionList::optionsFor('homogenisation_options')],
                 ['key' => 'sieving', 'label' => 'Sieving', 'type' => 'select', 'options' => self::YES_NO],
-                ['key' => 'preparation_method', 'label' => 'Preparation method', 'type' => 'multiselect', 'options' => self::PREPARATION_METHODS],
+                ['key' => 'preparation_method', 'label' => 'Preparation method', 'type' => 'multiselect', 'options' => OptionList::optionsFor('preparation_methods')],
                 ['key' => 'protocol', 'label' => 'Protocol', 'type' => 'textarea'],
                 ['key' => 'reference', 'label' => 'Reference', 'type' => 'text'],
             ],
             'sample_prep_microwave_digestion' => [
-                ['key' => 'phase_of_sample', 'label' => 'Phase of sample', 'type' => 'select', 'options' => self::MICROWAVE_PHASE_OF_SAMPLE],
+                ['key' => 'phase_of_sample', 'label' => 'Phase of sample', 'type' => 'select', 'options' => OptionList::optionsFor('microwave_phase_of_sample')],
                 ['key' => 'first_step_weighing', 'label' => 'First step — weighing', 'type' => 'text'],
                 ['key' => 'microwave_program', 'label' => 'Microwave program', 'type' => 'textarea'],
                 ['key' => 'second_step_dilution', 'label' => 'Second step — dilution', 'type' => 'text'],
             ],
             'analysis_isotopes' => [
-                ['key' => 'analyte', 'label' => 'Analyte', 'type' => 'select', 'options' => self::ANALYTES],
+                ['key' => 'analyte', 'label' => 'Analyte', 'type' => 'select', 'options' => OptionList::optionsFor('analytes')],
                 ['key' => 'instrument', 'label' => 'Instrument', 'type' => 'text'],
                 ['key' => 'instrument_settings', 'label' => 'Instrument settings', 'type' => 'textarea'],
                 ...$irmsStandards,
@@ -257,13 +186,13 @@ class ExperimentRecord extends Model
                 ...$irmsStandards,
             ],
             'result_stable_isotopes' => [
-                ['key' => 'analyte', 'label' => 'Analyte', 'type' => 'select', 'options' => self::ANALYTES],
+                ['key' => 'analyte', 'label' => 'Analyte', 'type' => 'select', 'options' => OptionList::optionsFor('analytes')],
                 ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
                 ['key' => 'stdev', 'label' => 'Stdev', 'type' => 'number'],
                 ['key' => 'unit', 'label' => 'Unit', 'type' => 'text', 'default' => '‰'],
             ],
             'result_elemental_composition' => [
-                ['key' => 'element', 'label' => 'Element', 'type' => 'select', 'options' => self::ELEMENTS],
+                ['key' => 'element', 'label' => 'Element', 'type' => 'select', 'options' => OptionList::optionsFor('elements')],
                 ['key' => 'value', 'label' => 'Value', 'type' => 'number'],
                 ['key' => 'stdev', 'label' => 'Stdev', 'type' => 'number'],
                 ['key' => 'unit', 'label' => 'Unit', 'type' => 'text', 'default' => '%'],
@@ -313,8 +242,8 @@ class ExperimentRecord extends Model
         }
 
         return match ($field) {
-            'analyte' => self::ANALYTES[$value] ?? $value,
-            'element' => self::ELEMENTS[$value] ?? $value,
+            'analyte' => OptionList::optionsFor('analytes')[$value] ?? $value,
+            'element' => OptionList::optionsFor('elements')[$value] ?? $value,
             'compound_id' => Compound::find($value)?->canonical_name,
             default => null,
         };
@@ -335,7 +264,7 @@ class ExperimentRecord extends Model
         }
 
         if ($unit = $this->details['unit'] ?? null) {
-            $unit = self::MK_GC_MS_UNITS[$unit] ?? $unit;
+            $unit = OptionList::optionsFor('mk_gc_ms_units')[$unit] ?? $unit;
             $label .= ' ' . $unit;
         }
 

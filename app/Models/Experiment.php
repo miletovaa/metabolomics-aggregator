@@ -40,12 +40,6 @@ class Experiment extends Model
         'completed_at' => 'date',
     ];
 
-    public const STATUSES = [
-        'planned' => 'Planned',
-        'in_progress' => 'In progress',
-        'completed' => 'Completed',
-    ];
-
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class);
@@ -70,6 +64,6 @@ class Experiment extends Model
 
     public function statusLabel(): string
     {
-        return self::STATUSES[$this->status] ?? $this->status;
+        return OptionList::optionsFor('experiment_statuses')[$this->status] ?? $this->status;
     }
 }

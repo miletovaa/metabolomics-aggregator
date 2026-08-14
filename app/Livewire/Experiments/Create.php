@@ -3,6 +3,7 @@
 namespace App\Livewire\Experiments;
 
 use App\Models\Experiment;
+use App\Models\OptionList;
 use App\Models\Project;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ class Create extends Component
     {
         $this->validate([
             'name' => ['required', 'string', 'max:255'],
-            'status' => ['required', 'in:' . implode(',', array_keys(Experiment::STATUSES))],
+            'status' => ['required', 'in:' . implode(',', array_keys(OptionList::optionsFor('experiment_statuses')))],
             'startedAt' => ['nullable', 'date'],
             'completedAt' => ['nullable', 'date'],
         ]);
@@ -65,6 +66,7 @@ class Create extends Component
     {
         return view('livewire.experiments.create', [
             'projects' => Project::visibleTo(Auth::user())->orderBy('name')->get(['id', 'name']),
+            'statuses' => OptionList::optionsFor('experiment_statuses'),
         ])->layout('layouts.app');
     }
 }

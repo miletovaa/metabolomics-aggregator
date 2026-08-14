@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Samplings;
 
+use App\Models\OptionList;
 use App\Models\Sampling;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
@@ -47,8 +48,8 @@ class Edit extends Component
             'gpsLat' => ['nullable', 'numeric', 'between:-90,90'],
             'gpsLon' => ['nullable', 'numeric', 'between:-180,180'],
             'altitude' => ['nullable', 'numeric'],
-            'samplingMethod' => ['nullable', 'in:' . implode(',', array_keys(Sampling::SAMPLING_METHODS))],
-            'packaging' => ['nullable', 'in:' . implode(',', array_keys(Sampling::PACKAGING_OPTIONS))],
+            'samplingMethod' => ['nullable', 'in:' . implode(',', array_keys(OptionList::optionsFor('sampling_methods')))],
+            'packaging' => ['nullable', 'in:' . implode(',', array_keys(OptionList::optionsFor('packaging_options')))],
         ]);
 
         $this->sampling->fill([
@@ -76,6 +77,9 @@ class Edit extends Component
 
     public function render()
     {
-        return view('livewire.samplings.edit')->layout('layouts.app');
+        return view('livewire.samplings.edit', [
+            'samplingMethods' => OptionList::optionsFor('sampling_methods'),
+            'packagingOptions' => OptionList::optionsFor('packaging_options'),
+        ])->layout('layouts.app');
     }
 }

@@ -25,7 +25,7 @@
             <div>
                 <label class="{{ $labelClass }}">Status</label>
                 <select wire:model="status" class="{{ $inputClass }}">
-                    @foreach(\App\Models\Experiment::STATUSES as $key => $label)
+                    @foreach($statuses as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
                     @endforeach
                 </select>

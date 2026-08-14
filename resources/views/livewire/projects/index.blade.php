@@ -129,9 +129,9 @@
                                         {{ $project->status === 'completed' ? 'bg-blue-100 text-blue-800'  : '' }}
                                         {{ $project->status === 'archived'  ? 'bg-gray-100 text-gray-600'  : '' }}"
                                 >
-                                    @foreach(\App\Livewire\Projects\Index::STATUSES as $status)
-                                        <option value="{{ $status }}" @selected($project->status === $status)>
-                                            {{ ucfirst($status) }}
+                                    @foreach($statuses as $key => $label)
+                                        <option value="{{ $key }}" @selected($project->status === $key)>
+                                            {{ $label }}
                                         </option>
                                     @endforeach
                                 </select>
