@@ -11,7 +11,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
-#[Fillable(['name', 'username', 'email', 'password', 'role'])]
+#[Fillable(['name', 'username', 'email', 'password', 'role', 'permissions'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
 {
@@ -23,9 +23,20 @@ class User extends Authenticatable
         'admin' => 'Admin',
     ];
 
+    /** Permissions are granted independently of role — a permission is a specific
+     *  capability (e.g. managing option lists), not implied by being an admin. */
+    public const PERMISSIONS = [
+        'manage_option_lists' => 'Manage predefined dropdown values',
+    ];
+
     public function isAdmin(): bool
     {
         return $this->role === 'admin';
+    }
+
+    public function hasPermission(string $permission): bool
+    {
+        return in_array($permission, $this->permissions ?? [], true);
     }
 
     /**
@@ -38,6 +49,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
         ];
     }
 

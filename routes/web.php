@@ -10,6 +10,8 @@ use App\Livewire\Experiments\Create as ExperimentsCreate;
 use App\Livewire\Experiments\Index as ExperimentsIndex;
 use App\Livewire\Experiments\Results as ExperimentsResults;
 use App\Livewire\Experiments\Show as ExperimentsShow;
+use App\Livewire\OptionLists\Index as OptionListsIndex;
+use App\Livewire\OptionLists\Show as OptionListsShow;
 use App\Livewire\Projects\Index as ProjectsIndex;
 use App\Livewire\Projects\Create as ProjectsCreate;
 use App\Livewire\Projects\Show as ProjectsShow;
@@ -55,6 +57,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/samples/{sample}/edit', SamplesEdit::class)->name('samples.edit');
 
     Route::get('/activity-log', ActivityLogIndex::class)->name('activity-log.index');
+
+    Route::get('/option-lists', OptionListsIndex::class)->name('option-lists.index');
+    Route::get('/option-lists/{optionList}', OptionListsShow::class)->name('option-lists.show');
 });
 
 require __DIR__.'/auth.php';
