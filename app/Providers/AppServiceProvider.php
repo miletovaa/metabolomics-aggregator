@@ -24,6 +24,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Paginator::useTailwind();
 
-        Gate::define('manage-option-lists', fn (User $user) => $user->hasPermission('manage_option_lists'));
+        // Open to every logged-in user for now — not gated on the manage_option_lists
+        // permission yet. Revisit once real per-user access control is needed here.
+        Gate::define('manage-option-lists', fn (User $user) => true);
     }
 }
