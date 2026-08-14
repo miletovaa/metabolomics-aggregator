@@ -25,14 +25,19 @@ class Sampling extends Model
         'collector',
     ];
 
-    /** A sampling has no owner of its own — visibility is inherited from its sample. */
-    public function scopeVisibleTo(Builder $query, User $user): Builder
+    /** A sampling has no owner of its own — "own" means its underlying sample is owned/assigned
+     *  to this user. The `samplings.$action` permission (its own resource, not samples') extends
+     *  that to every other sampling. */
+    public function scopeVisibleTo(Builder $query, User $user, string $action = 'view'): Builder
     {
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('samplings', $action)) {
             return $query;
         }
 
-        return $query->whereHas('sample', fn (Builder $q) => $q->visibleTo($user));
+        return $query->whereHas('sample', function (Builder $q) use ($user) {
+            $q->where('responsible_analyst_id', $user->id)
+                ->orWhereHas('project', fn (Builder $p) => $p->where('user_id', $user->id));
+        });
     }
 
     protected $casts = [

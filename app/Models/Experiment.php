@@ -22,10 +22,11 @@ class Experiment extends Model
         'created_by',
     ];
 
-    /** Admins see every experiment; everyone else only ones they created or that belong to a project they own. */
-    public function scopeVisibleTo(Builder $query, User $user): Builder
+    /** Everyone can always view/edit/delete experiments they created or that belong to a
+     *  project they own; the `experiments.$action` permission extends that to every other experiment. */
+    public function scopeVisibleTo(Builder $query, User $user, string $action = 'view'): Builder
     {
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('experiments', $action)) {
             return $query;
         }
 

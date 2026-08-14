@@ -23,10 +23,11 @@ class Project extends Model
         'user_id',
     ];
 
-    /** Admins see every project; everyone else only their own. */
-    public function scopeVisibleTo(Builder $query, User $user): Builder
+    /** Everyone can always view/edit/delete their own projects; the `projects.$action`
+     *  permission extends that to every other user's projects too. */
+    public function scopeVisibleTo(Builder $query, User $user, string $action = 'view'): Builder
     {
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('projects', $action)) {
             return $query;
         }
 

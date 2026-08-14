@@ -29,10 +29,11 @@ class Sample extends Model
         'note',
     ];
 
-    /** Admins see every sample; everyone else only samples they're responsible for or that belong to a project they own. */
-    public function scopeVisibleTo(Builder $query, User $user): Builder
+    /** Everyone can always view/edit/delete samples they're responsible for or that belong
+     *  to a project they own; the `samples.$action` permission extends that to every other sample. */
+    public function scopeVisibleTo(Builder $query, User $user, string $action = 'view'): Builder
     {
-        if ($user->isAdmin()) {
+        if ($user->hasPermission('samples', $action)) {
             return $query;
         }
 

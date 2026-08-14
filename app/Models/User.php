@@ -23,10 +23,29 @@ class User extends Authenticatable
         'admin' => 'Admin',
     ];
 
-    /** Permissions are granted independently of role — a permission is a specific
-     *  capability (e.g. managing option lists), not implied by being an admin. */
-    public const PERMISSIONS = [
-        'manage_option_lists' => 'Manage predefined dropdown values',
+    /**
+     * Resources with their own View / Add-Edit / Delete toggles (see PERMISSION_ACTIONS).
+     * For resources that carry per-record ownership (projects, samples, samplings,
+     * experiments) a user can *always* view/edit/delete their own or assigned records —
+     * these permissions only extend access to records that aren't theirs. For resources
+     * with no ownership concept (compounds, options, history, users) the permission gates
+     * the resource outright.
+     */
+    public const PERMISSION_RESOURCES = [
+        'projects' => 'Projects',
+        'samples' => 'Samples',
+        'samplings' => 'Samplings',
+        'experiments' => 'Experiments',
+        'compounds' => 'Compounds',
+        'options' => 'Predefined Values',
+        'history' => 'Activity Log',
+        'users' => 'Users',
+    ];
+
+    public const PERMISSION_ACTIONS = [
+        'view' => 'View',
+        'edit' => 'Add/Edit',
+        'delete' => 'Delete',
     ];
 
     public function isAdmin(): bool
@@ -34,9 +53,14 @@ class User extends Authenticatable
         return $this->role === 'admin';
     }
 
-    public function hasPermission(string $permission): bool
+    /** Admins have every permission on every resource; everyone else needs it explicitly granted. */
+    public function hasPermission(string $resource, string $action): bool
     {
-        return in_array($permission, $this->permissions ?? [], true);
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        return in_array("{$resource}.{$action}", $this->permissions ?? [], true);
     }
 
     /**
