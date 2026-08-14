@@ -156,6 +156,7 @@
                 <tr class="text-left text-gray-700">
                     <th class="p-3 cursor-pointer select-none" wire:click="sortBy('lab_sample_id')">Lab ID <span class="{{ $sortField === 'lab_sample_id' ? '' : 'text-gray-400' }}">{{ $sortIndicator('lab_sample_id') }}</span></th>
                     <th class="p-3 cursor-pointer select-none" wire:click="sortBy('external_id')">External ID <span class="{{ $sortField === 'external_id' ? '' : 'text-gray-400' }}">{{ $sortIndicator('external_id') }}</span></th>
+                    <th class="p-3 cursor-pointer select-none" wire:click="sortBy('matrix_name')">Matrix name <span class="{{ $sortField === 'matrix_name' ? '' : 'text-gray-400' }}">{{ $sortIndicator('matrix_name') }}</span></th>
                     <th class="p-3 cursor-pointer select-none" wire:click="sortBy('sample_group')">Group <span class="{{ $sortField === 'sample_group' ? '' : 'text-gray-400' }}">{{ $sortIndicator('sample_group') }}</span></th>
                     <th class="p-3">Subgroup</th>
                     <th class="p-3 cursor-pointer select-none" wire:click="sortBy('date_received')">Date received <span class="{{ $sortField === 'date_received' ? '' : 'text-gray-400' }}">{{ $sortIndicator('date_received') }}</span></th>
@@ -175,6 +176,7 @@
                             {{ $sample->lab_sample_id ?: '—' }}
                         </td>
                         <td class="p-3 text-gray-600">{{ $sample->external_id ?: '—' }}</td>
+                        <td class="p-3 text-gray-600">{{ $sample->matrix_name ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->groupLabel() ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->subgroupLabel() ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $sample->date_received?->format('Y-m-d') ?? '—' }}</td>
@@ -194,7 +196,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="p-8 text-center text-gray-400">
+                        <td colspan="9" class="p-8 text-center text-gray-400">
                             No samples match your filters.
                         </td>
                     </tr>

@@ -22,7 +22,7 @@ class Index extends Component
     public string $sortDirection = 'desc';
 
     private const SORT_FIELDS = [
-        'lab_sample_id', 'external_id', 'sample_group', 'date_received',
+        'lab_sample_id', 'external_id', 'matrix_name', 'sample_group', 'date_received',
         'storage_condition', 'project', 'analyst', 'created_at',
     ];
 
