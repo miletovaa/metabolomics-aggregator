@@ -80,6 +80,25 @@ class Import extends Component
         $this->duplicates[$index]['status'] = 'declined';
     }
 
+    public function overrideDuplicate(int $index): void
+    {
+        if (! isset($this->duplicates[$index]) || $this->duplicates[$index]['status'] !== 'pending') {
+            return;
+        }
+
+        $sample = Sample::findOrFail($this->duplicates[$index]['existing_id']);
+        $sample->fill($this->duplicates[$index]['attributes']);
+        $changes = ActivityLogger::diff($sample);
+        $sample->save();
+
+        if ($changes) {
+            ActivityLogger::editSample($sample, $changes);
+        }
+
+        $this->duplicates[$index]['status'] = 'overridden';
+        $this->imported++;
+    }
+
     public function render()
     {
         return view('livewire.samples.import')->layout('layouts.app');

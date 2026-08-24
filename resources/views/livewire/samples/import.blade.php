@@ -54,7 +54,7 @@
                         {{ count($duplicates) }} possible duplicate(s)
                     </h3>
                     <p class="text-xs text-gray-500 mb-2">
-                        These rows match an existing sample exactly (same identification, group, storage, analysis and type-detail fields). Accept to import as a new sample anyway, or decline to skip.
+                        These rows share a lab sample ID or external ID with an existing sample. Accept to import as a new sample anyway, override to replace the existing sample's data with this row, or decline to skip.
                     </p>
                     <div class="divide-y divide-gray-100 border rounded-lg overflow-hidden">
                         @foreach($duplicates as $index => $duplicate)
@@ -80,6 +80,14 @@
                                         </button>
                                         <button
                                             type="button"
+                                            wire:click="overrideDuplicate({{ $index }})"
+                                            wire:confirm="Replace the existing sample's data with this row? This cannot be undone."
+                                            class="px-3 py-1 rounded-lg text-xs bg-amber-600 text-white hover:opacity-90"
+                                        >
+                                            Override
+                                        </button>
+                                        <button
+                                            type="button"
                                             wire:click="declineDuplicate({{ $index }})"
                                             class="px-3 py-1 rounded-lg text-xs border border-gray-300 text-gray-700 hover:bg-gray-50"
                                         >
@@ -88,6 +96,8 @@
                                     </div>
                                 @elseif($duplicate['status'] === 'accepted')
                                     <span class="text-xs font-medium text-green-700 shrink-0">Accepted — imported</span>
+                                @elseif($duplicate['status'] === 'overridden')
+                                    <span class="text-xs font-medium text-amber-700 shrink-0">Overridden — existing sample updated</span>
                                 @else
                                     <span class="text-xs font-medium text-gray-500 shrink-0">Declined — skipped</span>
                                 @endif
