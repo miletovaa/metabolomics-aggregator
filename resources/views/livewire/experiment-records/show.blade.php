@@ -55,9 +55,10 @@
                 </div>
             @endif
 
-            @if($item['fields']->isEmpty())
+            @php($hasElementalQc = $item_record->record_type === 'analysis_elemental_composition' && !empty($item_record->details['elemental_qc']))
+            @if($item['fields']->isEmpty() && !$hasElementalQc)
                 <p class="text-sm text-gray-500">No additional details recorded.</p>
-            @else
+            @elseif($item['fields']->isNotEmpty())
                 <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
                     @foreach($item['fields'] as $field)
                         <div class="rounded-lg border bg-gray-50 p-3 {{ $field['type'] === 'textarea' ? 'md:col-span-2' : '' }}">
@@ -68,13 +69,22 @@
                 </div>
             @endif
 
+            @if($hasElementalQc)
+                @include('livewire.experiment-records._elemental_qc', ['qc' => $item_record->details['elemental_qc']])
+            @endif
+
             @if($item['children']->isNotEmpty())
                 <div class="pt-2 border-t">
                     <div class="mb-2 text-xs font-medium uppercase tracking-wide text-gray-500">Linked from</div>
                     <div class="space-y-2">
                         @foreach($item['children'] as $child)
                             <a href="{{ route('experiment-records.show', [$experiment, $child]) }}" wire:navigate class="block rounded-lg border p-3 text-sm hover:bg-gray-50">
-                                <div class="font-medium text-gray-900">{{ $child->recordTypeLabel() }}</div>
+                                <div class="font-medium text-gray-900">
+                                    {{ $child->recordTypeLabel() }}{{ $child->subjectLabel() ? ' — ' . $child->subjectLabel() : '' }}
+                                    @if($child->valueLabel())
+                                        <span class="text-gray-500 font-normal">({{ $child->valueLabel() }})</span>
+                                    @endif
+                                </div>
                                 <div class="text-gray-500">{{ $child->performed_at?->format('Y-m-d') ?? '—' }} · {{ $child->performedBy?->name ?? '—' }}</div>
                             </a>
                         @endforeach

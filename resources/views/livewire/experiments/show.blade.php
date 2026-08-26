@@ -33,9 +33,14 @@
                 <p class="text-sm text-gray-600 mt-2 max-w-2xl">{{ $experiment->description }}</p>
             @endif
         </div>
-        <a href="{{ route('experiment-records.create', $experiment) }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap">
-            + Add Record
-        </a>
+        <div class="flex items-center gap-2 shrink-0">
+            <a href="{{ route('experiment-records.import-elemental-composition', $experiment) }}" wire:navigate class="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm whitespace-nowrap hover:bg-gray-50">
+                Import Elemental Composition
+            </a>
+            <a href="{{ route('experiment-records.create', $experiment) }}" wire:navigate class="bg-black text-white px-4 py-2 rounded-lg text-sm whitespace-nowrap">
+                + Add Record
+            </a>
+        </div>
     </div>
 
     @forelse(\App\Models\ExperimentRecord::FAMILY_LABELS as $family => $familyLabel)

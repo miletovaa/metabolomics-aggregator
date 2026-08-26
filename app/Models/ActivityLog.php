@@ -58,6 +58,7 @@ class ActivityLog extends Model
         'create_experiment_record' => ['label' => 'Added experiment record', 'color' => 'green'],
         'edit_experiment_record'   => ['label' => 'Edited experiment record', 'color' => 'blue'],
         'delete_experiment_record' => ['label' => 'Deleted experiment record', 'color' => 'red'],
+        'import_elemental_composition' => ['label' => 'Imported elemental composition results', 'color' => 'purple'],
         'edit_global_compound' => ['label' => 'Edited compound', 'color' => 'blue'],
         'create_user' => ['label' => 'Registered', 'color' => 'green'],
         'edit_user'   => ['label' => 'Edited profile', 'color' => 'blue'],

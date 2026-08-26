@@ -5,6 +5,7 @@ use App\Livewire\Compounds\Index as CompoundsIndex;
 use App\Livewire\Dashboard\Index as DashboardIndex;
 use App\Livewire\ExperimentRecords\Create as ExperimentRecordsCreate;
 use App\Livewire\ExperimentRecords\Edit as ExperimentRecordsEdit;
+use App\Livewire\ExperimentRecords\ImportElementalComposition;
 use App\Livewire\ExperimentRecords\Show as ExperimentRecordsShow;
 use App\Livewire\Experiments\Create as ExperimentsCreate;
 use App\Livewire\Experiments\Index as ExperimentsIndex;
@@ -51,6 +52,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/experiments/{experiment}', ExperimentsShow::class)->name('experiments.show');
     Route::get('/experiments/{experiment}/results', ExperimentsResults::class)->name('experiments.results');
     Route::get('/experiments/{experiment}/records/create', ExperimentRecordsCreate::class)->name('experiment-records.create');
+    Route::get('/experiments/{experiment}/records/import-elemental-composition', ImportElementalComposition::class)->name('experiment-records.import-elemental-composition');
     Route::get('/experiments/{experiment}/records/{record}', ExperimentRecordsShow::class)->name('experiment-records.show');
     Route::get('/experiments/{experiment}/records/{record}/edit', ExperimentRecordsEdit::class)->name('experiment-records.edit');
 

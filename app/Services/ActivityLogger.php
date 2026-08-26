@@ -183,6 +183,23 @@ class ActivityLogger
         );
     }
 
+    public static function importElementalComposition(Model $experiment, int $importedSamples, int $total, string $fileName): ActivityLog
+    {
+        $failed = $total - $importedSamples;
+        $detail = "Imported elemental composition results for {$importedSamples} of {$total} sample(s) in experiment \"{$experiment->name}\" from \"{$fileName}\".";
+        if ($failed > 0) {
+            $detail .= " {$failed} row(s) failed.";
+        }
+
+        return static::log(
+            'import_elemental_composition',
+            $detail,
+            $experiment,
+            $experiment->name,
+            ['imported_samples' => $importedSamples, 'total' => $total, 'failed' => $failed, 'file' => $fileName],
+        );
+    }
+
     public static function deleteSample(string $sampleName, ?int $sampleId = null): ActivityLog
     {
         return static::log(
