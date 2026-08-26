@@ -55,7 +55,7 @@ class Index extends Component
     public function render()
     {
         return view('livewire.users.index', [
-            'users' => User::orderBy('name')->get(),
+            'users' => User::orderBy('id')->get(),
             'canEdit' => Auth::user()->hasPermission('users', 'edit'),
             'canDelete' => Auth::user()->hasPermission('users', 'delete'),
         ])->layout('layouts.app');
