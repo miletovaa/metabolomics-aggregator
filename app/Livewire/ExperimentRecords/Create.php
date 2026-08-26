@@ -8,15 +8,22 @@ use App\Models\Sample;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Url;
 use Livewire\Component;
 
 class Create extends Component
 {
     public Experiment $experiment;
 
+    // Preselectable via query string — the "Add results" shortcut on an analysis record
+    // links here with these filled in, so the corresponding result type, its sample, and
+    // the analysis record as parent are ready to go without re-picking them.
+    #[Url]
     public ?int $sampleId = null;
     public string $selectedSampleLabel = '';
+    #[Url]
     public string $recordType = '';
+    #[Url]
     public ?int $parentRecordId = null;
     public ?int $performedBy = null;
     public string $performedAt = '';

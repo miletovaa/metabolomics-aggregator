@@ -70,6 +70,18 @@ class ExperimentRecord extends Model
         'result' => 'Results',
     ];
 
+    // Maps each analysis_* type to the result_* type it produces — used to preselect the
+    // right record type (and, for compound result types, route straight to the compound
+    // results page) from the "Add results" shortcut on an analysis record.
+    public const ANALYSIS_RESULT_TYPES = [
+        'analysis_isotopes' => 'result_stable_isotopes',
+        'analysis_elemental_composition' => 'result_elemental_composition',
+        'analysis_mk_gc_ms' => 'result_mk_gc_ms',
+        'analysis_voc_gc_ms' => 'result_voc_gc_ms',
+        'analysis_mk_gc_irms' => 'result_mk_gc_irms',
+        'analysis_voc_gc_irms' => 'result_voc_gc_irms',
+    ];
+
     // These result types are no longer stored as ExperimentRecord rows — they live as
     // ProjectCompound rows tagged with the analysis run (see ProjectCompound::runGroupKey()),
     // since a run can identify many compounds and that's exactly what the project-compounds

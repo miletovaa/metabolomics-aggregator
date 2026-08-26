@@ -59,7 +59,7 @@
                             <th class="p-3 font-medium">Linked to</th>
                             <th class="p-3 font-medium">Subject</th>
                             <th class="p-3 font-medium">Value</th>
-                            <th class="p-3 w-20"></th>
+                            <th class="p-3 w-32"></th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -86,7 +86,20 @@
                                         </a>
                                     </td>
                                     <td class="p-3 text-gray-600">{{ $record->valueLabel() ?? '—' }}</td>
-                                    <td class="p-3 text-right">
+                                    <td class="p-3 text-right whitespace-nowrap">
+                                        @if($family === 'analysis' && ($resultType = \App\Models\ExperimentRecord::ANALYSIS_RESULT_TYPES[$record->record_type] ?? null))
+                                            @php($addResultsUrl = in_array($resultType, \App\Models\ExperimentRecord::COMPOUND_RESULT_TYPES, true)
+                                                ? route('experiments.results', ['experiment' => $experiment->id, 'sampleId' => $record->sample_id, 'recordType' => $resultType, 'parentRecordId' => $record->id])
+                                                : route('experiment-records.create', ['experiment' => $experiment, 'sampleId' => $record->sample_id, 'recordType' => $resultType, 'parentRecordId' => $record->id]))
+                                            <a
+                                                href="{{ $addResultsUrl }}"
+                                                wire:navigate
+                                                x-on:click.stop
+                                                class="text-xs text-blue-600 hover:underline mr-2"
+                                            >
+                                                Add results
+                                            </a>
+                                        @endif
                                         <button
                                             x-on:click.stop
                                             wire:click="deleteRecord({{ $record->id }})"
