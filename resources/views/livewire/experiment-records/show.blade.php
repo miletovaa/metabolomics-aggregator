@@ -29,9 +29,19 @@
                 <h2 class="text-sm font-semibold text-gray-900 uppercase tracking-wide">
                     {{ $item['subject'] ?? $item_record->recordTypeLabel() }}
                 </h2>
-                <a href="{{ route('experiment-records.edit', [$experiment, $item_record]) }}" wire:navigate class="text-xs text-gray-500 hover:underline">
-                    Edit
-                </a>
+                <div class="flex items-center gap-3">
+                    @if(\App\Models\ExperimentRecord::familyOf($item_record->record_type) === 'analysis' && ($resultType = \App\Models\ExperimentRecord::ANALYSIS_RESULT_TYPES[$item_record->record_type] ?? null))
+                        @php($addResultsUrl = in_array($resultType, \App\Models\ExperimentRecord::COMPOUND_RESULT_TYPES, true)
+                            ? route('experiments.results', ['experiment' => $experiment->id, 'sampleId' => $item_record->sample_id, 'recordType' => $resultType, 'parentRecordId' => $item_record->id])
+                            : route('experiment-records.create', ['experiment' => $experiment, 'sampleId' => $item_record->sample_id, 'recordType' => $resultType, 'parentRecordId' => $item_record->id]))
+                        <a href="{{ $addResultsUrl }}" wire:navigate class="text-xs text-blue-600 hover:underline">
+                            Add results
+                        </a>
+                    @endif
+                    <a href="{{ route('experiment-records.edit', [$experiment, $item_record]) }}" wire:navigate class="text-xs text-gray-500 hover:underline">
+                        Edit
+                    </a>
+                </div>
             </div>
 
             @if($item_record->parentRecord)
