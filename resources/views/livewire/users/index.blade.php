@@ -57,6 +57,9 @@
                             @if($user->id === auth()->id())
                                 <span class="text-xs text-gray-400">(you)</span>
                             @endif
+                            @if($user->password === null)
+                                <span class="text-xs text-amber-600">— awaiting first sign-in</span>
+                            @endif
                         </td>
                         <td class="p-3 text-gray-600">{{ $user->username ?: '—' }}</td>
                         <td class="p-3 text-gray-600">{{ $user->email ?: '—' }}</td>

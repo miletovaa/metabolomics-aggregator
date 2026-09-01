@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Forms;
 
+use App\Models\User;
 use App\Services\ActivityLogger;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,22 @@ class LoginForm extends Form
     public function authenticate(): void
     {
         $this->ensureIsNotRateLimited();
+
+        // Account created without a password (see Users management) — whatever is submitted
+        // here, for this first sign-in, becomes the account's permanent password.
+        $user = User::where('username', $this->username)->first();
+        if ($user && $user->password === null) {
+            if (strlen($this->password) < 8) {
+                RateLimiter::hit($this->throttleKey());
+
+                throw ValidationException::withMessages([
+                    'form.password' => 'Password must be at least 8 characters.',
+                ]);
+            }
+
+            $user->password = $this->password;
+            $user->save();
+        }
 
         if (! Auth::attempt($this->only(['username', 'password']), $this->remember)) {
             RateLimiter::hit($this->throttleKey());

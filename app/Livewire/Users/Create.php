@@ -28,7 +28,9 @@ class Create extends Component
             'name' => ['required', 'string', 'max:255'],
             'username' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_.-]+$/', 'unique:users,username'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8'],
+            // Left blank, the account has no password yet — whoever first signs in as this
+            // user sets their own password (see LoginForm::authenticate()).
+            'password' => ['nullable', 'string', 'min:8'],
             'role' => ['required', 'in:' . implode(',', array_keys(User::ROLES))],
         ]);
 
@@ -36,7 +38,7 @@ class Create extends Component
             'name' => $this->name,
             'username' => $this->username,
             'email' => $this->email ?: null,
-            'password' => Hash::make($this->password),
+            'password' => $this->password ? Hash::make($this->password) : null,
             'role' => $this->role,
             'permissions' => $this->permissions,
         ]);

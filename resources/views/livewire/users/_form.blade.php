@@ -24,7 +24,18 @@
             @error('email') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
         <div>
-            <label class="{{ $labelClass }}">Password @if(isset($isEdit) && $isEdit) <span class="text-gray-400 font-normal">(leave blank to keep current)</span> @else <span class="text-red-500">*</span> @endif</label>
+            <label class="{{ $labelClass }}">
+                Password
+                @if(isset($isEdit) && $isEdit)
+                    @if($user->password === null)
+                        <span class="text-amber-600 font-normal">(not set yet — leave blank to let the user set it on first login)</span>
+                    @else
+                        <span class="text-gray-400 font-normal">(leave blank to keep current)</span>
+                    @endif
+                @else
+                    <span class="text-gray-400 font-normal">(optional — leave blank to let the user set it on first login)</span>
+                @endif
+            </label>
             <input type="password" wire:model="password" class="{{ $inputClass }}" autocomplete="new-password">
             @error('password') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
         </div>
